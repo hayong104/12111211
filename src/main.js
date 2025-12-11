@@ -1,0 +1,1245 @@
+import './style.css'
+
+const app = document.querySelector('#app')
+
+// 처음 화면(조건 선택 화면) 그리기
+function renderHome() {
+  app.innerHTML = `
+    <main class="page">
+      ${renderKeyStatus()}
+      <header class="page-header">
+        <h1>평행사변형이 될 조건</h1>
+        <p class="page-subtitle">
+          아래에서 오늘 활동에서 확인해 볼 조건을 선택해 보세요.
+        </p>
+      </header>
+
+      <section class="condition-section">
+        <h2 class="section-title">활동해서 확인할 조건 선택</h2>
+
+        <div class="condition-grid">
+          <button class="condition-card condition-card--disabled" data-condition="1" disabled>
+            <div class="condition-label">조건 1</div>
+            <div class="condition-text">
+              두 쌍의 대변이 각각 평행하다.
+            </div>
+            <div class="condition-tag">기본 활동</div>
+          </button>
+
+          <button class="condition-card condition-card--disabled" data-condition="2" disabled>
+            <div class="condition-label">조건 2</div>
+            <div class="condition-text">
+              두 쌍의 대변의 길이가 각각 같다.
+            </div>
+            <div class="condition-tag">길이 비교</div>
+          </button>
+
+          <button class="condition-card condition-card--disabled" data-condition="3" disabled>
+            <div class="condition-label">조건 3</div>
+            <div class="condition-text">
+              두 쌍의 대각의 크기가 각각 같다.
+            </div>
+            <div class="condition-tag">각도 탐구</div>
+          </button>
+
+          <button class="condition-card condition-card--disabled" data-condition="4" disabled>
+            <div class="condition-label">조건 4</div>
+            <div class="condition-text">
+              두 대각선이 서로 다른 것을 이등분한다.
+            </div>
+            <div class="condition-tag">대각선 탐구</div>
+          </button>
+
+          <button class="condition-card" data-condition="5">
+            <div class="condition-label">조건 5</div>
+            <div class="condition-text">
+              한 쌍의 대변이 평행하고, 그 길이가 같다.
+            </div>
+            <div class="condition-tag">한 쌍의 대변</div>
+          </button>
+    </div>
+
+        <p class="helper-text">
+          * 마음에 드는 조건을 하나 골라 누른 뒤, 이 조건이 성립하는 도형이 어떤 모습인지
+          함께 이야기해 보세요.
+        </p>
+      </section>
+    </main>
+  `
+
+  attachHomeEvents()
+}
+
+// 각 조건 카드 클릭 시 활동 화면으로 이동
+function attachHomeEvents() {
+  const buttons = document.querySelectorAll('.condition-card:not(.condition-card--disabled)')
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.condition
+      renderActivity(id)
+    })
+  })
+}
+
+// 조건 정보
+const conditions = {
+  1: {
+    title: '조건 1',
+    description: '두 쌍의 대변이 각각 평행하다.',
+  },
+  2: {
+    title: '조건 2',
+    description: '두 쌍의 대변의 길이가 각각 같다.',
+  },
+  3: {
+    title: '조건 3',
+    description: '두 쌍의 대각의 크기가 각각 같다.',
+  },
+  4: {
+    title: '조건 4',
+    description: '두 대각선이 서로 다른 것을 이등분한다.',
+  },
+  5: {
+    title: '조건 5',
+    description: '한 쌍의 대변이 평행하고, 그 길이가 같다.',
+  },
+}
+
+// 활동 상태 (선택된 점, 실행 기록, 사각형 꼭짓점, 평행선 자, 챗봇)
+const activityState = {
+  selectedPoint: null,
+  actions: [],
+  vertices: [],
+  quadShape: null,
+  orderedVertices: null, // 정렬된 꼭짓점
+  parallelRulers: [],
+  chatMessages: [],
+  isSending: false,
+  chatUnlocked: false,
+  currentCondition: null,
+  gridGroup: null,
+  analysisResults: null, // 평행사변형 분석 결과
+  lengthLabels: [], // 길이 라벨
+  angleLabels: [], // 각도 라벨
+  diagonals: [], // 대각선
+}
+
+// 활동 화면
+function renderActivity(conditionId) {
+  const condition = conditions[conditionId]
+
+  activityState.selectedPoint = null
+  activityState.actions = []
+  activityState.vertices = []
+  activityState.quadShape = null
+  activityState.parallelRulers = []
+  activityState.chatMessages = []
+  activityState.isSending = false
+  activityState.chatUnlocked = false
+  activityState.currentCondition = conditionId
+
+  app.innerHTML = `
+    <main class="page activity-page">
+      ${renderKeyStatus()}
+      <header class="page-header activity-header">
+        <button type="button" class="back-button">
+          ← 조건 선택으로 돌아가기
+        </button>
+        <div class="activity-titles">
+          <h1>평행사변형 탐구 활동</h1>
+          <p class="page-subtitle">
+            선택한 조건: <strong>${condition.title}</strong>
+          </p>
+          <p class="activity-condition-text">
+            ${condition.description}
+    </p>
+  </div>
+      </header>
+
+      <section class="activity-body">
+        <div class="activity-main">
+          <div id="grid-container" class="grid-container"></div>
+        </div>
+
+        <aside class="activity-side">
+          <h2 class="section-title">활동 방법</h2>
+          <ol class="activity-steps">
+            <li>격자 위의 점을 한 번 클릭하여 첫 번째 점을 정합니다.</li>
+            <li>다른 격자점을 한 번 더 클릭하면 두 점을 잇는 선분이 만들어집니다.</li>
+            <li>이 과정을 반복하여 평행사변형이 될 수 있는 모양을 스스로 만들어 봅니다.</li>
+            <li>실수했다면 <strong>“직전에 만든 점·선 지우기”</strong> 버튼으로 한 단계씩 되돌릴 수 있습니다.</li>
+            <li>처음부터 다시 하고 싶다면 <strong>“모두 지우기”</strong> 버튼을 눌러 전체를 지웁니다.</li>
+          </ol>
+
+          <div class="activity-controls">
+            <button type="button" id="undo-button" class="control-button">
+              직전에 만든 점·선 지우기
+            </button>
+            <button
+              type="button"
+              id="make-quad-button"
+              class="control-button control-button--secondary"
+              disabled
+            >
+              선택한 네 점으로 사각형 만들기
+            </button>
+            <button type="button" id="reset-button" class="control-button control-button--secondary">
+              모두 지우기
+            </button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="chat-section" style="display: none;">
+        <div class="parallelogram-analysis" id="parallelogram-analysis" style="display: none;">
+          <h2 class="section-title">평행사변형이 되는 이유 확인</h2>
+          <div class="analysis-controls">
+            <button type="button" id="show-lengths-btn" class="control-button">각 변의 길이 보기</button>
+            <button type="button" id="show-angles-btn" class="control-button">네 각의 크기 보기</button>
+            <button type="button" id="show-diagonals-btn" class="control-button">대각선 그리고 이등분 확인</button>
+          </div>
+          <div id="analysis-results" class="analysis-results"></div>
+        </div>
+        
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div class="chat-title">피드백 챗봇</div>
+            <div class="chat-hint">지금까지 그린 점·선·사각형 정보를 함께 전송합니다.</div>
+          </div>
+          <div id="chat-status" class="chat-status">사각형을 만든 후 조건 확인을 진행하세요.</div>
+          <button id="chat-check" type="button" class="control-button chat-check" disabled>
+            조건에 맞는지 확인하기
+          </button>
+          <button id="condition-complete-btn" type="button" class="control-button condition-complete-btn" style="display: none; margin-top: 8px;" disabled>
+            조건 확인 완료
+          </button>
+          <div id="parallelogram-judgment" class="parallelogram-judgment" style="display: none; margin-top: 16px;">
+            <div class="judgment-question">만든 사각형이 평행사변형인가요?</div>
+            <div class="judgment-input-group">
+              <input
+                id="parallelogram-input"
+                class="judgment-input"
+                type="text"
+                placeholder="평행사변형 또는 평행사변형이 아님"
+                autocomplete="off"
+              />
+              <button id="judgment-submit-btn" type="button" class="control-button">확인</button>
+            </div>
+          </div>
+          <div id="chat-log" class="chat-log"></div>
+          <form id="chat-form" class="chat-form">
+            <input
+              id="chat-input"
+              class="chat-input"
+              type="text"
+              name="message"
+              placeholder="예: 내가 만든 사각형이 조건 1을 만족하나요?"
+              required
+              autocomplete="off"
+              disabled
+            />
+            <button id="chat-send" type="submit" class="control-button chat-send" disabled>질문 보내기</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  `
+
+  setupActivityEvents()
+  setupChatUI()
+}
+
+// 활동 화면 이벤트 연결
+function setupActivityEvents() {
+  const backButton = document.querySelector('.back-button')
+  const undoButton = document.getElementById('undo-button')
+  const resetButton = document.getElementById('reset-button')
+  const makeQuadButton = document.getElementById('make-quad-button')
+  const gridContainer = document.getElementById('grid-container')
+
+  backButton.addEventListener('click', () => {
+    renderHome()
+  })
+
+  const svg = createGridSvg()
+  gridContainer.appendChild(svg)
+  
+  // 미리보기 선을 위한 그룹 참조 저장 (회전된 그룹과 같은 그룹에 추가하기 위해)
+  const gridGroup = svg.querySelector('g[transform*="rotate"]')
+  activityState.gridGroup = gridGroup
+
+  // 평행선 자 드래그용 상태
+  let draggingRuler = null
+  let lastMousePos = null
+  // 선분 미리보기용 상태 (객체로 참조 전달)
+  const previewLineRef = { current: null }
+
+  svg.addEventListener('click', (event) => {
+    const point = event.target.closest('.grid-point')
+    if (!point) return
+    handlePointClick(point, svg)
+  })
+
+  // 격자점에 마우스가 올라갔을 때 미리보기 표시
+  const points = svg.querySelectorAll('.grid-point')
+  points.forEach((point) => {
+    point.addEventListener('mouseenter', () => {
+      if (activityState.selectedPoint && point !== activityState.selectedPoint && !draggingRuler) {
+        const x1 = Number(activityState.selectedPoint.dataset.origX || activityState.selectedPoint.getAttribute('cx') || 0)
+        const y1 = Number(activityState.selectedPoint.dataset.origY || activityState.selectedPoint.getAttribute('cy') || 0)
+        const x2 = Number(point.dataset.origX || point.getAttribute('cx') || 0)
+        const y2 = Number(point.dataset.origY || point.getAttribute('cy') || 0)
+
+        if (!previewLineRef.current) {
+          previewLineRef.current = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+          previewLineRef.current.classList.add('segment-preview')
+          // 회전된 그룹 안에 추가
+          const gridGroup = svg.querySelector('g[transform*="rotate"]')
+          if (gridGroup) {
+            gridGroup.appendChild(previewLineRef.current)
+          } else {
+            svg.appendChild(previewLineRef.current)
+          }
+        }
+        previewLineRef.current.setAttribute('x1', String(x1))
+        previewLineRef.current.setAttribute('y1', String(y1))
+        previewLineRef.current.setAttribute('x2', String(x2))
+        previewLineRef.current.setAttribute('y2', String(y2))
+      }
+    })
+  })
+  
+  // 마우스가 격자 밖으로 나갔을 때 미리보기 제거
+  svg.addEventListener('mouseleave', () => {
+    if (previewLineRef.current) {
+      previewLineRef.current.remove()
+      previewLineRef.current = null
+    }
+  })
+
+  // 평행선 자 드래그 시작
+  svg.addEventListener('mousedown', (event) => {
+    const ruler = event.target.closest('.parallel-ruler')
+    if (!ruler) return
+    draggingRuler = ruler
+    lastMousePos = { x: event.offsetX, y: event.offsetY }
+  })
+
+  // 드래그 중 위치 갱신 (평행선 자) - handlePreviewMove와 함께 작동
+  const handleRulerMove = (event) => {
+    if (draggingRuler && lastMousePos) {
+      const dx = event.offsetX - lastMousePos.x
+      const dy = event.offsetY - lastMousePos.y
+
+      const x1 = parseFloat(draggingRuler.getAttribute('x1'))
+      const y1 = parseFloat(draggingRuler.getAttribute('y1'))
+      const x2 = parseFloat(draggingRuler.getAttribute('x2'))
+      const y2 = parseFloat(draggingRuler.getAttribute('y2'))
+
+      draggingRuler.setAttribute('x1', String(x1 + dx))
+      draggingRuler.setAttribute('y1', String(y1 + dy))
+      draggingRuler.setAttribute('x2', String(x2 + dx))
+      draggingRuler.setAttribute('y2', String(y2 + dy))
+
+      lastMousePos = { x: event.offsetX, y: event.offsetY }
+    }
+  }
+  
+  svg.addEventListener('mousemove', handleRulerMove)
+
+  // 드래그 종료
+  const stopDrag = () => {
+    draggingRuler = null
+    lastMousePos = null
+  }
+  svg.addEventListener('mouseup', stopDrag)
+  svg.addEventListener('mouseleave', stopDrag)
+
+  undoButton.addEventListener('click', handleUndo)
+  resetButton.addEventListener('click', handleReset)
+  makeQuadButton.addEventListener('click', () => handleMakeQuadrilateral(svg))
+}
+
+// 격자(SVG) 만들기 - 정삼각형 격자
+function createGridSvg() {
+  const GRID_ROWS = 10
+  const GRID_COLS = 10
+  const TRIANGLE_SIDE = 50 // 정삼각형 한 변의 길이
+  const PADDING = 24
+  const ROTATION_ANGLE = 18 // 격자 회전 각도 (도)
+
+  // 정삼각형의 높이
+  const TRIANGLE_HEIGHT = TRIANGLE_SIDE * Math.sqrt(3) / 2
+  
+  // 격자 크기 계산
+  const width = PADDING * 2 + TRIANGLE_SIDE * (GRID_COLS - 1) + TRIANGLE_SIDE / 2
+  const height = PADDING * 2 + TRIANGLE_HEIGHT * (GRID_ROWS - 1) + TRIANGLE_HEIGHT
+  const centerX = width / 2
+  const centerY = height / 2
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+  svg.setAttribute('width', '100%')
+  svg.setAttribute('height', '100%')
+  svg.classList.add('grid-svg')
+  
+  // 보조선(격자선) 제거 - 격자점만 표시
+
+  // 격자점 (작은 원형 점) - 회전 그룹 밖에 배치, 정삼각형 격자의 꼭짓점에 배치
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      // 홀수 행은 오프셋 적용
+      const offsetX = (r % 2 === 1) ? TRIANGLE_SIDE / 2 : 0
+      const x = PADDING + TRIANGLE_SIDE * c + offsetX
+      const y = PADDING + TRIANGLE_HEIGHT * r
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      circle.setAttribute('cx', x)
+      circle.setAttribute('cy', y)
+      circle.setAttribute('r', 2.5)
+      circle.classList.add('grid-point')
+      circle.dataset.row = String(r)
+      circle.dataset.col = String(c)
+      // 원래 좌표 저장
+      circle.dataset.origX = String(x)
+      circle.dataset.origY = String(y)
+      // 회전 그룹 밖에 추가
+      svg.appendChild(circle)
+      
+      // 아래쪽 삼각형의 꼭짓점도 추가
+      if (r < GRID_ROWS - 1) {
+        const y2 = y + TRIANGLE_HEIGHT
+        const circle2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+        circle2.setAttribute('cx', x)
+        circle2.setAttribute('cy', y2)
+        circle2.setAttribute('r', 2.5)
+        circle2.classList.add('grid-point')
+        circle2.dataset.row = String(r + 0.5)
+        circle2.dataset.col = String(c)
+        circle2.dataset.origX = String(x)
+        circle2.dataset.origY = String(y2)
+        svg.appendChild(circle2)
+      }
+    }
+  }
+
+  return svg
+}
+
+// 점 클릭 → 점 선택 / 선분 그리기
+function handlePointClick(point, svg) {
+  const { selectedPoint } = activityState
+
+  // 사각형 꼭짓점으로 등록 (최대 4개, 중복 클릭은 무시)
+  if (activityState.vertices.length < 4) {
+    const already = activityState.vertices.some((v) => v.element === point)
+    if (!already) {
+      const labelChar = String.fromCharCode(65 + activityState.vertices.length) // A, B, C, D
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      // 정삼각형의 중심 좌표 가져오기 (원래 좌표 사용)
+      const cx = Number(point.dataset.origX || point.getAttribute('cx') || 0)
+      const cy = Number(point.dataset.origY || point.getAttribute('cy') || 0)
+      // 점 근처에 라벨 표시 (점 위가 아니라 오른쪽 위)
+      text.setAttribute('x', String(cx + 10))
+      text.setAttribute('y', String(cy - 10))
+      text.classList.add('point-label')
+      text.textContent = labelChar
+      svg.appendChild(text)
+
+      activityState.vertices.push({
+        element: point,
+        x: cx,
+        y: cy,
+        labelEl: text,
+      })
+    }
+  }
+
+  // 네 개의 점이 모였는지에 따라 버튼 활성/비활성
+  const makeQuadButton = document.getElementById('make-quad-button')
+  if (makeQuadButton) {
+    makeQuadButton.disabled = activityState.vertices.length !== 4
+  }
+
+  // 첫 번째 점 선택
+  if (!selectedPoint) {
+    point.classList.add('grid-point--active')
+    activityState.selectedPoint = point
+    activityState.actions.push({ type: 'select', element: point })
+    return
+  }
+
+  // 같은 점을 두 번 클릭하면 무시
+  if (selectedPoint === point) {
+    return
+  }
+
+  // 두 번째 점 선택 → 선분 생성
+  const x1 = Number(selectedPoint.dataset.origX || selectedPoint.getAttribute('cx') || 0)
+  const y1 = Number(selectedPoint.dataset.origY || selectedPoint.getAttribute('cy') || 0)
+  const x2 = Number(point.dataset.origX || point.getAttribute('cx') || 0)
+  const y2 = Number(point.dataset.origY || point.getAttribute('cy') || 0)
+
+  // 미리보기 선 제거
+  const previewLineEl = svg.querySelector('.segment-preview')
+  if (previewLineEl) previewLineEl.remove()
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  line.setAttribute('x1', x1)
+  line.setAttribute('y1', y1)
+  line.setAttribute('x2', x2)
+  line.setAttribute('y2', y2)
+  line.classList.add('segment-line')
+
+  // 회전된 그룹 안에 추가
+  const gridGroup = svg.querySelector('g[transform*="rotate"]')
+  if (gridGroup) {
+    gridGroup.appendChild(line)
+  } else {
+    svg.appendChild(line)
+  }
+  // 선분과 연결된 두 점 정보도 저장 (되돌리기 시 라벨 제거용)
+  activityState.actions.push({ 
+    type: 'segment', 
+    element: line,
+    point1: selectedPoint,
+    point2: point
+  })
+
+  selectedPoint.classList.remove('grid-point--active')
+  activityState.selectedPoint = null
+}
+
+// 선택한 네 점으로 사각형 그리기
+function handleMakeQuadrilateral(svg) {
+  if (activityState.vertices.length !== 4) return
+
+  // 기존 사각형이 있다면 제거
+  if (activityState.quadShape) {
+    activityState.quadShape.remove()
+    activityState.quadShape = null
+  }
+
+  // 교차하는 선분이 없도록, 꼭짓점을 중심점 기준 각도 순으로 정렬
+  const cx =
+    activityState.vertices.reduce((sum, v) => sum + v.x, 0) / activityState.vertices.length
+  const cy =
+    activityState.vertices.reduce((sum, v) => sum + v.y, 0) / activityState.vertices.length
+
+  const ordered = [...activityState.vertices].sort((a, b) => {
+    const angleA = Math.atan2(a.y - cy, a.x - cx)
+    const angleB = Math.atan2(b.y - cy, b.x - cx)
+    return angleA - angleB
+  })
+
+  const pointsAttr = ordered.map((v) => `${v.x},${v.y}`).join(' ')
+
+  const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon')
+  polygon.setAttribute('points', pointsAttr)
+  polygon.classList.add('quad-polygon')
+
+  // 격자선보다 위, 점보다 아래에 오도록 끝부분에 추가
+  svg.appendChild(polygon)
+  activityState.quadShape = polygon
+  activityState.orderedVertices = ordered // 정렬된 꼭짓점 저장
+
+  // 챗봇 섹션 표시 및 조건 확인 버튼 활성화
+  const chatSection = document.querySelector('.chat-section')
+  if (chatSection) {
+    chatSection.style.display = 'block'
+  }
+  const chatCheckBtn = document.getElementById('chat-check')
+  if (chatCheckBtn) {
+    chatCheckBtn.disabled = false
+  }
+  // 조건 확인 완료 버튼과 평행사변형 판단 입력 창 숨기기
+  const conditionCompleteBtn = document.getElementById('condition-complete-btn')
+  if (conditionCompleteBtn) {
+    conditionCompleteBtn.style.display = 'none'
+    conditionCompleteBtn.disabled = true
+  }
+  const parallelogramJudgment = document.getElementById('parallelogram-judgment')
+  if (parallelogramJudgment) {
+    parallelogramJudgment.style.display = 'none'
+  }
+  const analysisSection = document.getElementById('parallelogram-analysis')
+  if (analysisSection) {
+    analysisSection.style.display = 'none'
+  }
+
+  // 평행사변형 판단 UI 이벤트 연결
+  setupParallelogramAnalysis(svg, ordered)
+}
+
+// 사각형의 한 변을 선택해 평행선 자 생성
+function createParallelRulerFromEdge(svg, clickX, clickY) {
+  if (!activityState.quadShape || activityState.vertices.length !== 4) return
+
+  // 기존 평행선 자 제거
+  activityState.parallelRulers.forEach((ruler) => ruler.remove())
+  activityState.parallelRulers = []
+
+  const verts = activityState.vertices
+  let bestIndex = 0
+  let bestDist = Infinity
+
+  // 클릭한 위치에서 가장 가까운 변 찾기
+  for (let i = 0; i < 4; i++) {
+    const a = verts[i]
+    const b = verts[(i + 1) % 4]
+    const ax = a.x
+    const ay = a.y
+    const bx = b.x
+    const by = b.y
+
+    const vx = bx - ax
+    const vy = by - ay
+    const wx = clickX - ax
+    const wy = clickY - ay
+
+    const len2 = vx * vx + vy * vy || 1
+    let t = (vx * wx + vy * wy) / len2
+    t = Math.max(0, Math.min(1, t))
+
+    const px = ax + t * vx
+    const py = ay + t * vy
+    const dist = Math.hypot(clickX - px, clickY - py)
+
+    if (dist < bestDist) {
+      bestDist = dist
+      bestIndex = i
+    }
+  }
+
+  const a = verts[bestIndex]
+  const b = verts[(bestIndex + 1) % 4]
+
+  const ruler = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  ruler.setAttribute('x1', String(a.x))
+  ruler.setAttribute('y1', String(a.y))
+  ruler.setAttribute('x2', String(b.x))
+  ruler.setAttribute('y2', String(b.y))
+  ruler.classList.add('parallel-ruler')
+
+  svg.appendChild(ruler)
+  activityState.parallelRulers.push(ruler)
+}
+
+// 직전 점/선 되돌리기
+function handleUndo() {
+  const last = activityState.actions.pop()
+  if (!last) return
+
+  if (last.type === 'segment') {
+    last.element.remove()
+    // 선분과 연결된 점들의 라벨 제거
+    if (last.point1) {
+      const vertex1 = activityState.vertices.find(v => v.element === last.point1)
+      if (vertex1 && vertex1.labelEl) {
+        vertex1.labelEl.remove()
+        const index = activityState.vertices.indexOf(vertex1)
+        if (index > -1) {
+          activityState.vertices.splice(index, 1)
+        }
+      }
+    }
+    if (last.point2) {
+      const vertex2 = activityState.vertices.find(v => v.element === last.point2)
+      if (vertex2 && vertex2.labelEl) {
+        vertex2.labelEl.remove()
+        const index = activityState.vertices.indexOf(vertex2)
+        if (index > -1) {
+          activityState.vertices.splice(index, 1)
+        }
+      }
+    }
+    // 버튼 상태 업데이트
+    const makeQuadButton = document.getElementById('make-quad-button')
+    if (makeQuadButton) {
+      makeQuadButton.disabled = activityState.vertices.length !== 4
+    }
+  } else if (last.type === 'select') {
+    last.element.classList.remove('grid-point--active')
+    if (activityState.selectedPoint === last.element) {
+      activityState.selectedPoint = null
+    }
+    // 점 선택을 되돌릴 때 해당 점의 라벨도 제거
+    const vertex = activityState.vertices.find(v => v.element === last.element)
+    if (vertex && vertex.labelEl) {
+      vertex.labelEl.remove()
+      const index = activityState.vertices.indexOf(vertex)
+      if (index > -1) {
+        activityState.vertices.splice(index, 1)
+      }
+      // 버튼 상태 업데이트
+      const makeQuadButton = document.getElementById('make-quad-button')
+      if (makeQuadButton) {
+        makeQuadButton.disabled = activityState.vertices.length !== 4
+      }
+    }
+  }
+}
+
+// 전체 초기화
+function handleReset() {
+  activityState.actions.forEach((action) => {
+    if (action.type === 'segment') {
+      action.element.remove()
+    } else if (action.type === 'select') {
+      action.element.classList.remove('grid-point--active')
+    }
+  })
+
+  activityState.actions = []
+  activityState.selectedPoint = null
+
+  // 사각형 및 꼭짓점 정보 초기화
+  if (activityState.quadShape) {
+    activityState.quadShape.remove()
+    activityState.quadShape = null
+  }
+  activityState.vertices.forEach((v) => {
+    if (v.labelEl) v.labelEl.remove()
+  })
+  activityState.vertices = []
+
+  // 평행선 자 제거
+  activityState.parallelRulers.forEach((ruler) => ruler.remove())
+  activityState.parallelRulers = []
+  activityState.orderedVertices = null
+
+  // 분석 결과 제거
+  activityState.lengthLabels.forEach(label => label.remove())
+  activityState.lengthLabels = []
+  activityState.angleLabels.forEach(label => label.remove())
+  activityState.angleLabels = []
+  activityState.diagonals.forEach(diag => diag.remove())
+  activityState.diagonals = []
+
+  const makeQuadButton = document.getElementById('make-quad-button')
+  if (makeQuadButton) {
+    makeQuadButton.disabled = true
+  }
+
+  // 챗봇 섹션 숨기기
+  const chatSection = document.querySelector('.chat-section')
+  if (chatSection) {
+    chatSection.style.display = 'none'
+  }
+  const chatCheckBtn = document.getElementById('chat-check')
+  if (chatCheckBtn) {
+    chatCheckBtn.disabled = true
+  }
+  const resultsDiv = document.getElementById('analysis-results')
+  if (resultsDiv) {
+    resultsDiv.innerHTML = ''
+  }
+
+  // 챗봇 초기화
+  activityState.chatMessages = []
+  activityState.isSending = false
+  activityState.chatUnlocked = false
+  const chatLog = document.getElementById('chat-log')
+  if (chatLog) chatLog.innerHTML = ''
+  const chatStatus = document.getElementById('chat-status')
+  if (chatStatus) chatStatus.textContent = '먼저 아래 버튼으로 조건 확인을 진행하세요.'
+  const chatInput = document.getElementById('chat-input')
+  const chatSend = document.getElementById('chat-send')
+  if (chatInput) chatInput.disabled = true
+  if (chatSend) chatSend.disabled = true
+}
+
+// 시작 시 처음 화면 보여주기
+renderHome()
+
+// ----- 챗봇 UI / API -----
+
+function renderKeyStatus() {
+  const hasKey = !!import.meta.env.VITE_OPENAI_API_KEY
+  return `
+    <div class="key-status ${hasKey ? 'key-ok' : 'key-missing'}">
+      <span class="key-dot"></span>
+      ${hasKey ? 'API Key 감지됨 (VITE_OPENAI_API_KEY)' : 'API Key가 설정되지 않았습니다 (.env를 확인하세요)'}
+    </div>
+  `
+}
+
+function setupChatUI() {
+  const form = document.getElementById('chat-form')
+  const input = document.getElementById('chat-input')
+  const sendBtn = document.getElementById('chat-send')
+  const log = document.getElementById('chat-log')
+  const checkBtn = document.getElementById('chat-check')
+  const status = document.getElementById('chat-status')
+  if (!form || !input || !sendBtn || !log || !checkBtn || !status) return
+
+  const setChatEnabled = (enabled) => {
+    activityState.chatUnlocked = enabled
+    input.disabled = !enabled
+    sendBtn.disabled = !enabled
+    status.textContent = enabled
+      ? '조건 확인 완료! 자유롭게 질문을 입력하세요.'
+      : '먼저 조건 확인 버튼을 눌러 주세요.'
+  }
+
+  checkBtn.addEventListener('click', async () => {
+    if (activityState.isSending) return
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+    if (!apiKey) {
+      addChatMessage('assistant', 'API Key가 설정되지 않아 요청을 보낼 수 없습니다. .env의 VITE_OPENAI_API_KEY를 확인하세요.')
+      return
+    }
+
+    activityState.isSending = true
+    checkBtn.disabled = true
+    status.textContent = '조건을 확인하는 중입니다...'
+    try {
+      const context = summarizeCurrentWork()
+      const autoQuestion = '내가 만든 도형이 선택한 조건을 만족하는지 확인해줘.'
+      const reply = await callChatGPT(apiKey, autoQuestion, context)
+      addChatMessage('assistant', reply)
+      setChatEnabled(true)
+      // 조건 확인 완료 버튼 표시
+      const conditionCompleteBtn = document.getElementById('condition-complete-btn')
+      if (conditionCompleteBtn) {
+        conditionCompleteBtn.style.display = 'block'
+        conditionCompleteBtn.disabled = false
+      }
+    } catch (err) {
+      addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+      checkBtn.disabled = false
+      status.textContent = '조건 확인을 다시 시도해 주세요.'
+    } finally {
+      activityState.isSending = false
+    }
+  })
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const message = input.value.trim()
+    if (!message || activityState.isSending || !activityState.chatUnlocked) return
+
+    addChatMessage('user', message)
+    input.value = ''
+
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+    if (!apiKey) {
+      addChatMessage('assistant', 'API Key가 설정되지 않아 요청을 보낼 수 없습니다. .env의 VITE_OPENAI_API_KEY를 확인하세요.')
+      return
+    }
+
+    activityState.isSending = true
+    sendBtn.disabled = true
+    try {
+      const context = summarizeCurrentWork()
+      const reply = await callChatGPT(apiKey, message, context)
+      addChatMessage('assistant', reply)
+    } catch (err) {
+      addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+    } finally {
+      activityState.isSending = false
+      sendBtn.disabled = false
+    }
+  })
+
+  // 조건 확인 완료 버튼과 평행사변형 판단 입력 창 이벤트
+  const conditionCompleteBtn = document.getElementById('condition-complete-btn')
+  const parallelogramJudgment = document.getElementById('parallelogram-judgment')
+  const judgmentInput = document.getElementById('parallelogram-input')
+  const judgmentSubmitBtn = document.getElementById('judgment-submit-btn')
+
+  // 조건 확인 완료 버튼 클릭
+  if (conditionCompleteBtn) {
+    conditionCompleteBtn.addEventListener('click', () => {
+      // 평행사변형 판단 입력 창 표시
+      if (parallelogramJudgment) {
+        parallelogramJudgment.style.display = 'block'
+      }
+      conditionCompleteBtn.disabled = true
+    })
+  }
+
+  // 평행사변형 판단 제출
+  if (judgmentSubmitBtn && judgmentInput) {
+    judgmentSubmitBtn.addEventListener('click', () => {
+      const answer = judgmentInput.value.trim().toLowerCase()
+      const isParallelogram = answer.includes('평행사변형') && !answer.includes('아님') && !answer.includes('아니')
+      
+      if (isParallelogram) {
+        // 평행사변형이라고 답한 경우 - 평행사변형 판단 파트 표시
+        const analysisSection = document.getElementById('parallelogram-analysis')
+        if (analysisSection) {
+          analysisSection.style.display = 'block'
+        }
+        parallelogramJudgment.style.display = 'none'
+      } else {
+        // 평행사변형이 아니라고 답한 경우
+        alert('평행사변형이 아니라고 판단하셨습니다. 다시 확인해보세요.')
+      }
+    })
+
+    // Enter 키로도 제출 가능
+    judgmentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        judgmentSubmitBtn.click()
+      }
+    })
+  }
+}
+
+function addChatMessage(role, text) {
+  const log = document.getElementById('chat-log')
+  if (!log) return
+
+  activityState.chatMessages.push({ role, text })
+
+  const item = document.createElement('div')
+  item.className = `chat-bubble ${role === 'user' ? 'chat-user' : 'chat-assistant'}`
+  item.textContent = text
+  log.appendChild(item)
+  log.scrollTop = log.scrollHeight
+}
+
+// 두 선분이 평행한지 확인
+function areParallel(seg1, seg2, tolerance = 0.01) {
+  const dx1 = seg1.x2 - seg1.x1
+  const dy1 = seg1.y2 - seg1.y1
+  const dx2 = seg2.x2 - seg2.x1
+  const dy2 = seg2.y2 - seg2.y1
+  
+  // 수직선 처리
+  if (Math.abs(dx1) < tolerance && Math.abs(dx2) < tolerance) return true
+  if (Math.abs(dx1) < tolerance || Math.abs(dx2) < tolerance) return false
+  
+  // 기울기 비교
+  const slope1 = dy1 / dx1
+  const slope2 = dy2 / dx2
+  return Math.abs(slope1 - slope2) < tolerance
+}
+
+// 두 선분의 길이 계산
+function segmentLength(seg) {
+  return Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1)
+}
+
+// 두 선분이 대변 관계인지 확인 (마주보는 변)
+function areOppositeSides(seg1, seg2, allSegments) {
+  // 두 선분의 끝점들
+  const seg1P1 = { x: seg1.x1, y: seg1.y1 }
+  const seg1P2 = { x: seg1.x2, y: seg1.y2 }
+  const seg2P1 = { x: seg2.x1, y: seg2.y1 }
+  const seg2P2 = { x: seg2.x2, y: seg2.y2 }
+  
+  // 두 선분이 공유하는 점이 있는지 확인
+  const tolerance = 2
+  const sharePoint = (
+    (Math.hypot(seg1P1.x - seg2P1.x, seg1P1.y - seg2P1.y) < tolerance) ||
+    (Math.hypot(seg1P1.x - seg2P2.x, seg1P1.y - seg2P2.y) < tolerance) ||
+    (Math.hypot(seg1P2.x - seg2P1.x, seg1P2.y - seg2P1.y) < tolerance) ||
+    (Math.hypot(seg1P2.x - seg2P2.x, seg1P2.y - seg2P2.y) < tolerance)
+  )
+  
+  // 공유하는 점이 있으면 인접한 변이므로 대변이 아님
+  if (sharePoint) return false
+  
+  // 두 선분이 다른 선분들로 연결되어 있는지 확인
+  // seg1의 끝점들이 다른 선분들과 연결되어 있고,
+  // seg2의 끝점들도 다른 선분들과 연결되어 있으면 대변일 가능성
+  const seg1Connected = allSegments.some(s => {
+    if (s === seg1 || s === seg2) return false
+    const sP1 = { x: s.x1, y: s.y1 }
+    const sP2 = { x: s.x2, y: s.y2 }
+    return (
+      (Math.hypot(seg1P1.x - sP1.x, seg1P1.y - sP1.y) < tolerance) ||
+      (Math.hypot(seg1P1.x - sP2.x, seg1P1.y - sP2.y) < tolerance) ||
+      (Math.hypot(seg1P2.x - sP1.x, seg1P2.y - sP1.y) < tolerance) ||
+      (Math.hypot(seg1P2.x - sP2.x, seg1P2.y - sP2.y) < tolerance)
+    )
+  })
+  
+  const seg2Connected = allSegments.some(s => {
+    if (s === seg1 || s === seg2) return false
+    const sP1 = { x: s.x1, y: s.y1 }
+    const sP2 = { x: s.x2, y: s.y2 }
+    return (
+      (Math.hypot(seg2P1.x - sP1.x, seg2P1.y - sP1.y) < tolerance) ||
+      (Math.hypot(seg2P1.x - sP2.x, seg2P1.y - sP2.y) < tolerance) ||
+      (Math.hypot(seg2P2.x - sP1.x, seg2P2.y - sP1.y) < tolerance) ||
+      (Math.hypot(seg2P2.x - sP2.x, seg2P2.y - sP2.y) < tolerance)
+    )
+  })
+  
+  // 두 선분 모두 다른 선분들과 연결되어 있고, 서로 공유점이 없으면 대변일 가능성
+  return seg1Connected && seg2Connected
+}
+
+function summarizeCurrentWork() {
+  const conditionId = activityState.currentCondition
+  const condition = conditionId ? conditions[conditionId] : null
+  
+  // 선분 정보 수집
+  const segments = activityState.actions
+    .filter((a) => a.type === 'segment')
+    .map((a, idx) => {
+      const line = a.element
+      const seg = {
+        id: idx,
+        x1: Math.round(Number(line.getAttribute('x1'))),
+        y1: Math.round(Number(line.getAttribute('y1'))),
+        x2: Math.round(Number(line.getAttribute('x2'))),
+        y2: Math.round(Number(line.getAttribute('y2'))),
+      }
+      seg.length = Math.round(segmentLength(seg))
+      return seg
+    })
+
+  // 선분 쌍별 분석
+  const segmentPairs = []
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      const seg1 = segments[i]
+      const seg2 = segments[j]
+      
+      segmentPairs.push({
+        segment1: { id: seg1.id, points: [[seg1.x1, seg1.y1], [seg1.x2, seg1.y2]], length: seg1.length },
+        segment2: { id: seg2.id, points: [[seg2.x1, seg2.y1], [seg2.x2, seg2.y2]], length: seg2.length },
+        areParallel: areParallel(seg1, seg2),
+        areOppositeSides: areOppositeSides(seg1, seg2, segments),
+        sameLength: Math.abs(seg1.length - seg2.length) < 1, // 1픽셀 오차 허용
+      })
+    }
+  }
+
+  return {
+    segments: segments.map(s => ({
+      id: s.id,
+      points: [[s.x1, s.y1], [s.x2, s.y2]],
+      length: s.length
+    })),
+    segmentCount: segments.length,
+    segmentPairs,
+    condition: condition
+      ? { id: conditionId, title: condition.title, description: condition.description }
+      : null,
+  }
+}
+
+async function callChatGPT(apiKey, userMessage, context) {
+  const messages = [
+    {
+      role: 'system',
+      content:
+        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생들이 만든 선분들이 "선택한 조건"을 만족하는지 쉬운 말로 알려줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘:\n\n1. 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n2. 평행 여부 확인: 두 선분이 평행한지 확인\n3. 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘.',
+    },
+    {
+      role: 'user',
+      content: `학생이 남긴 질문: ${userMessage}\n\n현재 작업 요약: ${JSON.stringify(
+        context,
+        null,
+        2
+      )}\n\n위 정보에서 segmentPairs 배열을 참고하여, 각 선분 쌍에 대해 다음 세 가지를 확인하고 피드백을 줘:\n1. areOppositeSides: 두 선분이 대변 관계인지\n2. areParallel: 두 선분이 평행한지\n3. sameLength: 두 선분의 길이가 같은지\n\n각 선분 쌍에 대해 이 세 가지 기준을 명확히 구분해서 설명해줘. 선분들에 대한 피드백만 해주고, 사각형이나 평행사변형에 대한 언급은 하지 마.`,
+    },
+  ]
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature: 0.4,
+      max_tokens: 300,
+    }),
+  })
+
+  if (!response.ok) {
+    const errText = await response.text()
+    throw new Error(`API 오류 (${response.status}): ${errText}`)
+  }
+
+  const data = await response.json()
+  const reply = data.choices?.[0]?.message?.content?.trim()
+  if (!reply) throw new Error('API 응답을 읽을 수 없습니다.')
+  return reply
+}
+
+// 평행사변형 분석 UI 설정
+function setupParallelogramAnalysis(svg, vertices) {
+  const showLengthsBtn = document.getElementById('show-lengths-btn')
+  const showAnglesBtn = document.getElementById('show-angles-btn')
+  const showDiagonalsBtn = document.getElementById('show-diagonals-btn')
+  const resultsDiv = document.getElementById('analysis-results')
+
+  if (!showLengthsBtn || !showAnglesBtn || !showDiagonalsBtn || !resultsDiv) return
+
+  // 기존 이벤트 리스너 제거 후 새로 추가
+  const newShowLengthsBtn = showLengthsBtn.cloneNode(true)
+  showLengthsBtn.parentNode.replaceChild(newShowLengthsBtn, showLengthsBtn)
+  const newShowAnglesBtn = showAnglesBtn.cloneNode(true)
+  showAnglesBtn.parentNode.replaceChild(newShowAnglesBtn, showAnglesBtn)
+  const newShowDiagonalsBtn = showDiagonalsBtn.cloneNode(true)
+  showDiagonalsBtn.parentNode.replaceChild(newShowDiagonalsBtn, showDiagonalsBtn)
+
+  newShowLengthsBtn.addEventListener('click', () => showSideLengths(svg, vertices, resultsDiv))
+  newShowAnglesBtn.addEventListener('click', () => showAngles(svg, vertices, resultsDiv))
+  newShowDiagonalsBtn.addEventListener('click', () => showDiagonals(svg, vertices, resultsDiv))
+}
+
+// 각 변의 길이 표시
+function showSideLengths(svg, vertices, resultsDiv) {
+  // 기존 길이 라벨 제거
+  activityState.lengthLabels.forEach(label => label.remove())
+  activityState.lengthLabels = []
+
+  const lengths = []
+  for (let i = 0; i < 4; i++) {
+    const v1 = vertices[i]
+    const v2 = vertices[(i + 1) % 4]
+    const length = Math.hypot(v2.x - v1.x, v2.y - v1.y)
+    lengths.push(Math.round(length))
+
+    // 중점에 길이 표시
+    const midX = (v1.x + v2.x) / 2
+    const midY = (v1.y + v2.y) / 2
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    text.setAttribute('x', String(midX))
+    text.setAttribute('y', String(midY))
+    text.setAttribute('text-anchor', 'middle')
+    text.setAttribute('dominant-baseline', 'middle')
+    text.classList.add('length-label')
+    text.textContent = String(lengths[i])
+    svg.appendChild(text)
+    activityState.lengthLabels.push(text)
+  }
+
+  // 결과 설명
+  const oppositeEqual = (lengths[0] === lengths[2] && lengths[1] === lengths[3])
+  resultsDiv.innerHTML = `
+    <div class="result-item">
+      <strong>각 변의 길이:</strong> AB = ${lengths[0]}, BC = ${lengths[1]}, CD = ${lengths[2]}, DA = ${lengths[3]}
+    </div>
+    <div class="result-item">
+      <strong>대변의 길이 비교:</strong> ${oppositeEqual ? '✓ 두 쌍의 대변의 길이가 각각 같습니다.' : '✗ 두 쌍의 대변의 길이가 같지 않습니다.'}
+    </div>
+  `
+}
+
+// 네 각의 크기 표시
+function showAngles(svg, vertices, resultsDiv) {
+  // 기존 각도 라벨 제거
+  activityState.angleLabels.forEach(label => label.remove())
+  activityState.angleLabels = []
+
+  const angles = []
+  for (let i = 0; i < 4; i++) {
+    const v1 = vertices[i]
+    const v2 = vertices[(i + 1) % 4]
+    const v3 = vertices[(i + 2) % 4]
+    
+    // 각도 계산 (벡터 내적 사용)
+    const vec1 = { x: v2.x - v1.x, y: v2.y - v1.y }
+    const vec2 = { x: v2.x - v3.x, y: v2.y - v3.y }
+    const dot = vec1.x * vec2.x + vec1.y * vec2.y
+    const mag1 = Math.hypot(vec1.x, vec1.y)
+    const mag2 = Math.hypot(vec2.x, vec2.y)
+    const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI)
+    angles.push(Math.round(angle))
+
+    // 각도 표시 (꼭짓점 근처)
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    text.setAttribute('x', String(v2.x + 15))
+    text.setAttribute('y', String(v2.y - 15))
+    text.classList.add('angle-label')
+    text.textContent = `${angles[i]}°`
+    svg.appendChild(text)
+    activityState.angleLabels.push(text)
+  }
+
+  // 결과 설명
+  const oppositeEqual = (angles[0] === angles[2] && angles[1] === angles[3])
+  resultsDiv.innerHTML = `
+    <div class="result-item">
+      <strong>네 각의 크기:</strong> ∠A = ${angles[0]}°, ∠B = ${angles[1]}°, ∠C = ${angles[2]}°, ∠D = ${angles[3]}°
+    </div>
+    <div class="result-item">
+      <strong>대각의 크기 비교:</strong> ${oppositeEqual ? '✓ 두 쌍의 대각의 크기가 각각 같습니다.' : '✗ 두 쌍의 대각의 크기가 같지 않습니다.'}
+    </div>
+  `
+}
+
+// 대각선 그리고 이등분 확인
+function showDiagonals(svg, vertices, resultsDiv) {
+  // 기존 대각선 제거
+  activityState.diagonals.forEach(diag => diag.remove())
+  activityState.diagonals = []
+
+  // 두 대각선 그리기
+  const diag1 = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  diag1.setAttribute('x1', String(vertices[0].x))
+  diag1.setAttribute('y1', String(vertices[0].y))
+  diag1.setAttribute('x2', String(vertices[2].x))
+  diag1.setAttribute('y2', String(vertices[2].y))
+  diag1.classList.add('diagonal-line')
+  svg.appendChild(diag1)
+  activityState.diagonals.push(diag1)
+
+  const diag2 = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  diag2.setAttribute('x1', String(vertices[1].x))
+  diag2.setAttribute('y1', String(vertices[1].y))
+  diag2.setAttribute('x2', String(vertices[3].x))
+  diag2.setAttribute('y2', String(vertices[3].y))
+  diag2.classList.add('diagonal-line')
+  svg.appendChild(diag2)
+  activityState.diagonals.push(diag2)
+
+  // 교점 계산
+  const p1 = vertices[0]
+  const p2 = vertices[2]
+  const p3 = vertices[1]
+  const p4 = vertices[3]
+
+  // 선분 교점 계산
+  const denom = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x)
+  if (Math.abs(denom) < 0.001) {
+    resultsDiv.innerHTML = '<div class="result-item">대각선이 교차하지 않습니다.</div>'
+    return
+  }
+
+  const t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom
+  const intersection = {
+    x: p1.x + t * (p2.x - p1.x),
+    y: p1.y + t * (p2.y - p1.y)
+  }
+
+  // 각 대각선의 중점 계산
+  const mid1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+  const mid2 = { x: (p3.x + p4.x) / 2, y: (p3.y + p4.y) / 2 }
+
+  // 교점과 중점의 거리
+  const dist1 = Math.hypot(intersection.x - mid1.x, intersection.y - mid1.y)
+  const dist2 = Math.hypot(intersection.x - mid2.x, intersection.y - mid2.y)
+
+  const bisects = dist1 < 2 && dist2 < 2 // 2픽셀 오차 허용
+
+  // 교점 표시
+  const intersectionPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  intersectionPoint.setAttribute('cx', String(intersection.x))
+  intersectionPoint.setAttribute('cy', String(intersection.y))
+  intersectionPoint.setAttribute('r', 4)
+  intersectionPoint.classList.add('intersection-point')
+  svg.appendChild(intersectionPoint)
+  activityState.diagonals.push(intersectionPoint)
+
+  // 결과 설명
+  resultsDiv.innerHTML = `
+    <div class="result-item">
+      <strong>대각선 교점:</strong> (${Math.round(intersection.x)}, ${Math.round(intersection.y)})
+    </div>
+    <div class="result-item">
+      <strong>대각선 이등분:</strong> ${bisects ? '✓ 두 대각선이 서로 다른 것을 이등분합니다.' : '✗ 두 대각선이 서로 다른 것을 이등분하지 않습니다.'}
+    </div>
+  `
+}
