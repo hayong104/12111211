@@ -34,7 +34,7 @@ function renderHome() {
       </header>
 
       <section class="condition-section">
-        <h2 class="section-title">활동해서 확인할 조건 선택</h2>
+        <h2 class="section-title">조건 선택하기</h2>
 
         <div class="condition-grid">
           <button class="condition-card condition-card--disabled" data-condition="1" disabled>
@@ -79,7 +79,7 @@ function renderHome() {
     </div>
 
         <p class="helper-text">
-          * 마음에 드는 조건을 하나 골라 누른 뒤, 이 조건이 성립하는 도형이 어떤 모습인지
+          * 선택한 조건이 성립하는 사각형을 그려보고, 어떤 사각형인지
           함께 이야기해 보세요.
         </p>
       </section>
@@ -424,13 +424,9 @@ function setupActivityEvents() {
 function createGridSvg() {
     const GRID_ROWS = 7
     const GRID_COLS = 7
-    const PADDING = 10
-    
-    // === 변경된 부분: 가로/세로 간격 감소 ===
-    // 기존 35 -> 25로 감소
-    const HORIZONTAL_SPACING = 25 // 가로 간격
-    // 기존 55 -> 40로 감소 (세로가 가로보다 긴 비율 유지)
-    const VERTICAL_SPACING = 40  // 세로 간격
+    const PADDING = 5
+    const HORIZONTAL_SPACING = 15 // 가로 간격
+    const VERTICAL_SPACING = 20  // 세로 간격
     // ====================================
   
     // 격자 크기 계산
@@ -439,8 +435,8 @@ function createGridSvg() {
   
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-    svg.setAttribute('width', '100%')
-    svg.setAttribute('height', '100%')
+   svg.setAttribute('width', `${width}`) 
+  svg.setAttribute('height', `${height}`)
     svg.classList.add('grid-svg')
     
     // 격자점 (작은 원형 점)
