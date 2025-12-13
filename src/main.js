@@ -424,9 +424,9 @@ function setupActivityEvents() {
 function createGridSvg() {
     const GRID_ROWS = 7
     const GRID_COLS = 7
-    const PADDING = 5
-    const HORIZONTAL_SPACING = 15 // 가로 간격
-    const VERTICAL_SPACING = 20  // 세로 간격
+    const PADDING = 3
+    const HORIZONTAL_SPACING = 10 // 가로 간격
+    const VERTICAL_SPACING = 15  // 세로 간격
     // ====================================
   
     // 격자 크기 계산
@@ -448,7 +448,7 @@ function createGridSvg() {
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
         circle.setAttribute('cx', x)
         circle.setAttribute('cy', y)
-        circle.setAttribute('r', 2.5) // 점 크기 유지
+        circle.setAttribute('r', 1) // 점 크기 유지
         circle.classList.add('grid-point')
         
         circle.dataset.row = String(r)
