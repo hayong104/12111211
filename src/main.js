@@ -377,11 +377,21 @@ function setupActivityEvents() {
       if (activityState.eraserMode) {
         eraserButton.classList.add('control-button--active')
         eraserButton.textContent = '지우개 모드 (클릭하여 취소)'
-        svg.style.cursor = 'crosshair'
+        svg.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\'%3E%3Cpath d=\'M15.5 2L19.5 6L15.5 10M4.5 6L19.5 21L15.5 17L2.5 4L4.5 2L15.5 13L19.5 9L4.5 6Z\' stroke=\'%23334155\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E") 12 12, auto'
+        // 선분에도 커서 적용
+        const segments = svg.querySelectorAll('.segment-line')
+        segments.forEach(seg => {
+          seg.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\'%3E%3Cpath d=\'M15.5 2L19.5 6L15.5 10M4.5 6L19.5 21L15.5 17L2.5 4L4.5 2L15.5 13L19.5 9L4.5 6Z\' stroke=\'%23334155\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E") 12 12, auto'
+        })
       } else {
         eraserButton.classList.remove('control-button--active')
         eraserButton.textContent = '점 또는 선분 지우기'
         svg.style.cursor = 'default'
+        // 선분 커서도 원래대로
+        const segments = svg.querySelectorAll('.segment-line')
+        segments.forEach(seg => {
+          seg.style.cursor = 'default'
+        })
       }
     })
   }
@@ -415,8 +425,8 @@ function setupActivityEvents() {
 function createGridSvg() {
   const GRID_ROWS = 7
   const GRID_COLS = 7
-  const TRIANGLE_SIDE = 50 // 정삼각형 한 변의 길이
-  const PADDING = 24
+  const TRIANGLE_SIDE = 35 // 정삼각형 한 변의 길이
+  const PADDING = 10
   const ROTATION_ANGLE = 18 // 격자 회전 각도 (도)
 
   // 정삼각형의 높이
@@ -1243,7 +1253,7 @@ async function callChatGPT(apiKey, userMessage, context, isAfterConditionCheck =
   let systemContent
   if (isAfterConditionCheck) {
     // 조건 확인 완료 후 질문 - 친근한 대화 형태
-    systemContent = '너는 중학교 2학년 학생들과 대화하는 친근한 선생님이야. 학생의 질문에 직접적으로 답변해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게 설명해줘. 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.'
+    systemContent = '너는 중학교 2학년 학생들과 대화하는 따뜻하고 친근한 선생님이야. 학생의 질문에 답할 때 너무 바로 본론으로 들어가지 말고, 먼저 학생의 생각을 이해하고 격려하는 말을 해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게, 부드럽게 설명해줘. 질문의 의도에 맞게 구체적으로 설명하되, 학생이 편안하게 느낄 수 있도록 따뜻한 톤으로 대화해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.'
   } else {
     // 처음 조건 확인 시
     systemContent = '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n중요: 만족하지 않는 조건에 대한 피드백만 제공해줘. 만족하는 조건에 대해서는 언급하지 마. 만약 모든 조건을 만족한다면 "모든 조건을 만족합니다"라고만 간단히 말해줘.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 만족하지 않는 조건만 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘.'
