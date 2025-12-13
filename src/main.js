@@ -800,67 +800,6 @@ function handleUndoSegment(svg) {
   }
 }
 
-// 이전 선분 지우기
-function handleUndoSegment(svg) {
-  // 가장 최근의 선분 액션 찾기
-  let foundIndex = -1
-  for (let i = activityState.actions.length - 1; i >= 0; i--) {
-    if (activityState.actions[i].type === 'segment') {
-      foundIndex = i
-      break
-    }
-  }
-  
-  if (foundIndex === -1) return
-  
-  const last = activityState.actions.splice(foundIndex, 1)[0]
-  last.element.remove()
-  
-  // 선분과 연결된 점들의 라벨 제거
-  if (last.point1) {
-    const vertex1 = activityState.vertices.find(v => v.element === last.point1)
-    if (vertex1 && vertex1.labelEl) {
-      vertex1.labelEl.remove()
-      const index = activityState.vertices.indexOf(vertex1)
-      if (index > -1) {
-        activityState.vertices.splice(index, 1)
-      }
-    }
-  }
-  if (last.point2) {
-    const vertex2 = activityState.vertices.find(v => v.element === last.point2)
-    if (vertex2 && vertex2.labelEl) {
-      vertex2.labelEl.remove()
-      const index = activityState.vertices.indexOf(vertex2)
-      if (index > -1) {
-        activityState.vertices.splice(index, 1)
-      }
-    }
-  }
-  
-  // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
-  if (activityState.quadShape && activityState.vertices.length !== 4) {
-    activityState.quadShape.remove()
-    activityState.quadShape = null
-    activityState.orderedVertices = null
-    // 챗봇 섹션 숨기기
-    const chatSection = document.querySelector('.chat-section')
-    if (chatSection) {
-      chatSection.style.display = 'none'
-    }
-    const chatCheckBtn = document.getElementById('chat-check')
-    if (chatCheckBtn) {
-      chatCheckBtn.disabled = true
-    }
-  }
-  
-  // 버튼 상태 업데이트
-  const makeQuadButton = document.getElementById('make-quad-button')
-  if (makeQuadButton) {
-    makeQuadButton.disabled = activityState.vertices.length !== 4
-  }
-}
-
 // 선택한 네 점으로 사각형 그리기
 function handleMakeQuadrilateral(svg) {
   if (activityState.vertices.length !== 4) return
