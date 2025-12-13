@@ -172,9 +172,6 @@ function renderActivity(conditionId) {
     <main class="page activity-page">
       ${renderKeyStatus()}
       <header class="page-header activity-header">
-        <button type="button" class="back-button">
-          ← 조건 선택으로 돌아가기
-        </button>
         <div class="activity-titles">
           <h1>평행사변형 탐구 활동</h1>
           <p class="page-subtitle">
@@ -182,8 +179,11 @@ function renderActivity(conditionId) {
           </p>
           <p class="activity-condition-text">
             ${condition.description}
-    </p>
-  </div>
+          </p>
+        </div>
+        <button type="button" class="back-button">
+          ← 조건 선택으로 돌아가기
+        </button>
       </header>
 
       <section class="activity-body">
@@ -258,7 +258,6 @@ function renderActivity(conditionId) {
         
         <div class="quad-info-section" id="quad-info-section" style="display: none; margin-top: 20px;">
           <h2 class="section-title">사각형에 대한 정보 확인하기</h2>
-          <div id="quad-preview-container" class="quad-preview-container" style="margin-bottom: 16px;"></div>
           <div class="info-controls">
             <button type="button" id="info-show-lengths-btn" class="control-button">네 변의 길이</button>
             <button type="button" id="info-show-angles-btn" class="control-button">네 내각의 크기</button>
@@ -1432,7 +1431,6 @@ function setupQuadInfoSection() {
   
   const vertices = activityState.orderedVertices
   const infoResultsDiv = document.getElementById('info-results')
-  const quadPreviewContainer = document.getElementById('quad-preview-container')
   if (!infoResultsDiv) return
   
   // 그리기 활동 부분을 오른쪽 고정 창으로 표시
@@ -1485,38 +1483,12 @@ function setupQuadInfoSection() {
     fixedWindow.style.display = 'block'
   }
   
-  // 미니어처 창 숨기기 (고정 창이 표시되면 미니어처 창 숨김)
+  // 미니어처 창은 계속 표시 (고정 창과 함께 표시)
   const miniWindow2 = document.getElementById('miniature-activity-window')
   if (miniWindow2) {
-    miniWindow2.style.display = 'none'
+    miniWindow2.style.display = 'block'
   }
   
-  // 사각형 미리보기 생성
-  if (quadPreviewContainer && activityState.quadShape) {
-    quadPreviewContainer.innerHTML = ''
-    const previewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    previewSvg.setAttribute('viewBox', svg.getAttribute('viewBox') || '0 0 500 500')
-    previewSvg.setAttribute('width', '100%')
-    previewSvg.setAttribute('height', '200')
-    previewSvg.style.border = '1px solid rgba(229, 231, 235, 0.8)'
-    previewSvg.style.borderRadius = '8px'
-    previewSvg.style.background = '#ffffff'
-    
-    // 사각형 복사
-    const quadClone = activityState.quadShape.cloneNode(true)
-    previewSvg.appendChild(quadClone)
-    
-    // 점 라벨 복사
-    vertices.forEach((v, idx) => {
-      if (v.labelEl) {
-        const labelClone = v.labelEl.cloneNode(true)
-        previewSvg.appendChild(labelClone)
-      }
-    })
-    
-    quadPreviewContainer.appendChild(previewSvg)
-  }
-
   const infoShowLengthsBtn = document.getElementById('info-show-lengths-btn')
   const infoShowAnglesBtn = document.getElementById('info-show-angles-btn')
   const infoShowDiagonalsBtn = document.getElementById('info-show-diagonals-btn')
@@ -1741,8 +1713,60 @@ function setupJudgmentReasonSection() {
   reasonSubmitBtn.addEventListener('click', () => {
     const reason = reasonInput.value.trim()
     if (reason) {
+      // 폭죽 효과 함수
+      function createConfetti() {
+        const confettiCount = 50
+        const colors = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7', '#92400e', '#b45309']
+        const body = document.body
+        if (!body) return
+
+        for (let i = 0; i < confettiCount; i++) {
+          const confetti = document.createElement('div')
+          confetti.style.position = 'fixed'
+          confetti.style.width = '10px'
+          confetti.style.height = '10px'
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
+          confetti.style.left = Math.random() * 100 + '%'
+          confetti.style.top = '-10px'
+          confetti.style.borderRadius = '50%'
+          confetti.style.pointerEvents = 'none'
+          confetti.style.zIndex = '10000'
+          confetti.style.opacity = '0.9'
+          
+          body.appendChild(confetti)
+          
+          const angle = Math.random() * 360
+          const velocity = 50 + Math.random() * 50
+          const x = Math.cos(angle * Math.PI / 180) * velocity
+          const y = Math.sin(angle * Math.PI / 180) * velocity + 100
+          
+          let posX = window.innerWidth / 2
+          let posY = window.innerHeight / 2
+          let rotation = 0
+          
+          const animate = () => {
+            posX += x * 0.1
+            posY += y * 0.1 + 2
+            rotation += 10
+            confetti.style.left = posX + 'px'
+            confetti.style.top = posY + 'px'
+            confetti.style.transform = `rotate(${rotation}deg)`
+            
+            if (posY < window.innerHeight + 100) {
+              requestAnimationFrame(animate)
+            } else {
+              confetti.remove()
+            }
+          }
+          
+          requestAnimationFrame(animate)
+          
+          setTimeout(() => confetti.remove(), 3000)
+        }
+      }
+      
+      createConfetti()
       alert('평행사변형이라고 판단한 이유가 저장되었습니다.')
-      // 여기에 추가적인 처리 로직을 넣을 수 있습니다
     } else {
       alert('평행사변형이라고 판단한 이유를 작성해주세요.')
     }

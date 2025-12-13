@@ -55,6 +55,15 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: #78350f;
+  background-clip: unset;
 }
 
 .page-subtitle {
@@ -178,6 +187,17 @@ body {
   flex: 1;
 }
 
+.activity-titles h1 {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
+  color: #78350f;
+  margin-bottom: 8px;
+}
+
 .back-button {
   border-radius: 999px;
   border: 1px solid rgba(229, 231, 235, 0.8);
@@ -208,7 +228,7 @@ body {
 
 .activity-body {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 400px;
   gap: 20px;
   align-items: flex-start;
   margin-bottom: 20px;
@@ -296,7 +316,7 @@ body {
 .miniature-window-content {
   flex: 1;
   overflow: hidden;
-  padding: 8px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -309,6 +329,11 @@ body {
   aspect-ratio: 1 / 1;
   transform: scale(0.6);
   transform-origin: center center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .fixed-activity-window {
@@ -341,17 +366,18 @@ body {
 .fixed-window-content {
   flex: 1;
   overflow: auto;
-  padding: 10px;
+  padding: 0;
 }
 
 .fixed-window-content .grid-container {
   width: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: 8px;
+  border-radius: 0;
   background: #fffef9;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2);
-  padding: 10px;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
 }
 
 .parallelogram-analysis {
@@ -585,6 +611,13 @@ body {
   border: 1px solid rgba(251, 191, 36, 0.3);
   box-shadow: 0 1px 3px rgba(251, 191, 36, 0.08);
   min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-main .grid-container {
+  max-width: 400px;
+  width: 100%;
 }
 
 .activity-steps {
