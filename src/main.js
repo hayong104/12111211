@@ -1,10 +1,29 @@
 import './style.css'
 
 const app = document.querySelector('#app')
+if (!app) {
+  console.error('app element not found')
+}
+
+// API Key 상태 표시
+function renderKeyStatus() {
+  const hasKey = !!import.meta.env.VITE_OPENAI_API_KEY
+  return `
+    <div class="key-status ${hasKey ? 'key-ok' : 'key-missing'}">
+      <span class="key-dot"></span>
+      ${hasKey ? 'API Key 감지됨 (VITE_OPENAI_API_KEY)' : 'API Key가 설정되지 않았습니다 (.env를 확인하세요)'}
+    </div>
+  `
+}
 
 // 처음 화면(조건 선택 화면) 그리기
 function renderHome() {
-  app.innerHTML = `
+  const appElement = document.querySelector('#app')
+  if (!appElement) {
+    console.error('app element is null')
+    return
+  }
+  appElement.innerHTML = `
     <main class="page">
       ${renderKeyStatus()}
       <header class="page-header">
@@ -143,7 +162,13 @@ function renderActivity(conditionId) {
     existingMiniature.remove()
   }
 
-  app.innerHTML = `
+  const appElement = document.querySelector('#app')
+  if (!appElement) {
+    console.error('App element not found in renderActivity')
+    return
+  }
+
+  appElement.innerHTML = `
     <main class="page activity-page">
       ${renderKeyStatus()}
       <header class="page-header activity-header">
@@ -984,19 +1009,42 @@ function handleReset() {
 }
 
 // 시작 시 처음 화면 보여주기
-renderHome()
+function initializeApp() {
+  console.log('initializeApp called')
+  const appElement = document.querySelector('#app')
+  console.log('App element found:', appElement)
+  
+  if (!appElement) {
+    console.error('App element not found!')
+    return
+  }
+  
+  try {
+    console.log('Calling renderHome()...')
+    renderHome()
+    console.log('renderHome() completed successfully')
+  } catch (error) {
+    console.error('Error in renderHome():', error)
+    console.error('Error stack:', error.stack)
+    appElement.innerHTML = `
+      <div style="padding: 20px; color: red; font-family: monospace;">
+        <h2>오류가 발생했습니다</h2>
+        <p>${error.message}</p>
+        <pre>${error.stack}</pre>
+      </div>
+    `
+  }
+}
+
+// DOM이 준비되면 실행
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp)
+} else {
+  // 이미 로드됨
+  initializeApp()
+}
 
 // ----- 챗봇 UI / API -----
-
-function renderKeyStatus() {
-  const hasKey = !!import.meta.env.VITE_OPENAI_API_KEY
-  return `
-    <div class="key-status ${hasKey ? 'key-ok' : 'key-missing'}">
-      <span class="key-dot"></span>
-      ${hasKey ? 'API Key 감지됨 (VITE_OPENAI_API_KEY)' : 'API Key가 설정되지 않았습니다 (.env를 확인하세요)'}
-    </div>
-  `
-}
 
 function setupChatUI() {
   const form = document.getElementById('chat-form')
