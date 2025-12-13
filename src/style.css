@@ -218,6 +218,14 @@ body {
   width: 100%;
 }
 
+.quad-info-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
 .parallelogram-analysis {
   background: #ffffff;
   border-radius: 12px;
@@ -553,6 +561,32 @@ body {
   align-self: flex-start;
   color: #0f5132;
   border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.chat-assistant .feedback-item {
+  margin: 8px 0;
+  padding-left: 4px;
+}
+
+.typing-indicator {
+  display: inline-block;
+  animation: typing 1.4s infinite;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.3;
+  }
+}
+
+.info-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .chat-form {

@@ -219,6 +219,20 @@ function renderActivity(conditionId) {
           </form>
         </div>
         
+        <div class="quad-info-section" id="quad-info-section" style="display: none; margin-top: 20px;">
+          <h2 class="section-title">사각형에 대한 정보 확인하기</h2>
+          <div class="info-controls">
+            <button type="button" id="info-show-lengths-btn" class="control-button">네 변의 길이</button>
+            <button type="button" id="info-show-angles-btn" class="control-button">네 내각의 크기</button>
+            <button type="button" id="info-show-diagonals-btn" class="control-button">두 대각선의 관계 확인</button>
+            <button type="button" id="info-show-parallel-btn" class="control-button">대변의 평행 여부 확인</button>
+          </div>
+          <div id="info-results" class="analysis-results"></div>
+          <button type="button" id="info-next-btn" class="control-button" style="margin-top: 12px; display: none;">
+            다음 단계: 평행사변형 판단하기
+          </button>
+        </div>
+        
         <div id="parallelogram-judgment" class="parallelogram-judgment" style="display: none; margin-top: 20px;">
           <div class="judgment-question">만든 사각형이 평행사변형인가요?</div>
           <div class="judgment-input-group">
@@ -854,11 +868,15 @@ function setupChatUI() {
     activityState.isSending = true
     checkBtn.disabled = true
     status.textContent = '피드백을 작성하는 중입니다...'
+    
+    // 로딩 인디케이터 표시
+    const typingMessage = addChatMessage('assistant', '', true)
+    
     try {
       const context = summarizeCurrentWork()
       const autoQuestion = '내가 만든 도형이 선택한 조건을 만족하는지 확인해줘.'
       const reply = await callChatGPT(apiKey, autoQuestion, context)
-      addChatMessage('assistant', reply)
+      updateTypingMessage(typingMessage, reply)
       setChatEnabled(true)
       // 조건 확인 완료 버튼 표시
       const conditionCompleteBtn = document.getElementById('condition-complete-btn')
@@ -867,7 +885,11 @@ function setupChatUI() {
         conditionCompleteBtn.disabled = false
       }
     } catch (err) {
-      addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+      if (typingMessage) {
+        updateTypingMessage(typingMessage, `오류가 발생했습니다: ${err.message || err}`)
+      } else {
+        addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+      }
       checkBtn.disabled = false
       status.textContent = '조건 확인을 다시 시도해 주세요.'
     } finally {
@@ -891,12 +913,20 @@ function setupChatUI() {
 
     activityState.isSending = true
     sendBtn.disabled = true
+    
+    // 로딩 인디케이터 표시
+    const typingMessage = addChatMessage('assistant', '', true)
+    
     try {
       const context = summarizeCurrentWork()
       const reply = await callChatGPT(apiKey, message, context)
-      addChatMessage('assistant', reply)
+      updateTypingMessage(typingMessage, reply)
     } catch (err) {
-      addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+      if (typingMessage) {
+        updateTypingMessage(typingMessage, `오류가 발생했습니다: ${err.message || err}`)
+      } else {
+        addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+      }
     } finally {
       activityState.isSending = false
       sendBtn.disabled = false
@@ -912,9 +942,11 @@ function setupChatUI() {
   // 조건 확인 완료 버튼 클릭
   if (conditionCompleteBtn) {
     conditionCompleteBtn.addEventListener('click', () => {
-      // 평행사변형 판단 입력 창 표시
-      if (parallelogramJudgment) {
-        parallelogramJudgment.style.display = 'block'
+      // 사각형 정보 확인 섹션 표시
+      const quadInfoSection = document.getElementById('quad-info-section')
+      if (quadInfoSection) {
+        quadInfoSection.style.display = 'block'
+        setupQuadInfoSection()
       }
       conditionCompleteBtn.disabled = true
     })
@@ -948,17 +980,50 @@ function setupChatUI() {
   }
 }
 
-function addChatMessage(role, text) {
+function addChatMessage(role, text, isTyping = false) {
   const log = document.getElementById('chat-log')
   if (!log) return
 
-  activityState.chatMessages.push({ role, text })
+  if (!isTyping) {
+    activityState.chatMessages.push({ role, text })
+  }
 
   const item = document.createElement('div')
   item.className = `chat-bubble ${role === 'user' ? 'chat-user' : 'chat-assistant'}`
-  item.textContent = text
+  
+  if (isTyping) {
+    item.innerHTML = '<span class="typing-indicator">...</span>'
+    item.dataset.typing = 'true'
+  } else {
+    // 텍스트를 줄바꿈 처리하여 표시
+    const formattedText = text.replace(/\n\n/g, '\n').split('\n').map(line => {
+      // (1), (2), (3) 같은 형식의 줄은 문단으로 구분
+      if (/^\(\d+\)/.test(line.trim())) {
+        return `<div class="feedback-item">${line.trim()}</div>`
+      }
+      return line
+    }).join('<br>')
+    item.innerHTML = formattedText
+  }
+  
   log.appendChild(item)
   log.scrollTop = log.scrollHeight
+  return item
+}
+
+function updateTypingMessage(messageElement, text) {
+  if (messageElement && messageElement.dataset.typing === 'true') {
+    const formattedText = text.replace(/\n\n/g, '\n').split('\n').map(line => {
+      // (1), (2), (3) 같은 형식의 줄은 문단으로 구분
+      if (/^\(\d+\)/.test(line.trim())) {
+        return `<div class="feedback-item">${line.trim()}</div>`
+      }
+      return line
+    }).join('<br>')
+    messageElement.innerHTML = formattedText
+    messageElement.dataset.typing = 'false'
+    activityState.chatMessages.push({ role: 'assistant', text })
+  }
 }
 
 // 두 선분이 평행한지 확인
@@ -1136,7 +1201,7 @@ async function callChatGPT(apiKey, userMessage, context) {
     {
       role: 'system',
       content:
-        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생들이 만든 선분들이 "선택한 조건"을 만족하는지 쉬운 말로 알려줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘:\n\n1. 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n2. 평행 여부 확인: 두 선분이 평행한지 확인\n3. 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘.',
+        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생들이 만든 선분들이 "선택한 조건"을 만족하는지 쉬운 말로 알려줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘.',
     },
     {
       role: 'user',
@@ -1171,6 +1236,117 @@ async function callChatGPT(apiKey, userMessage, context) {
   const reply = data.choices?.[0]?.message?.content?.trim()
   if (!reply) throw new Error('API 응답을 읽을 수 없습니다.')
   return reply
+}
+
+// 사각형 정보 확인 섹션 설정
+function setupQuadInfoSection() {
+  const svg = document.querySelector('.grid-svg')
+  if (!svg || !activityState.orderedVertices) return
+  
+  const vertices = activityState.orderedVertices
+  const infoResultsDiv = document.getElementById('info-results')
+  if (!infoResultsDiv) return
+
+  const infoShowLengthsBtn = document.getElementById('info-show-lengths-btn')
+  const infoShowAnglesBtn = document.getElementById('info-show-angles-btn')
+  const infoShowDiagonalsBtn = document.getElementById('info-show-diagonals-btn')
+  const infoShowParallelBtn = document.getElementById('info-show-parallel-btn')
+  const infoNextBtn = document.getElementById('info-next-btn')
+  const parallelogramJudgment = document.getElementById('parallelogram-judgment')
+
+  // 정보 확인 버튼 클릭 시 다음 단계 버튼 표시
+  const showNextButton = () => {
+    if (infoNextBtn) {
+      infoNextBtn.style.display = 'block'
+    }
+  }
+
+  if (infoShowLengthsBtn) {
+    infoShowLengthsBtn.addEventListener('click', () => {
+      showSideLengths(svg, vertices, infoResultsDiv)
+      showNextButton()
+    })
+  }
+
+  if (infoShowAnglesBtn) {
+    infoShowAnglesBtn.addEventListener('click', () => {
+      showAngles(svg, vertices, infoResultsDiv)
+      showNextButton()
+    })
+  }
+
+  if (infoShowDiagonalsBtn) {
+    infoShowDiagonalsBtn.addEventListener('click', () => {
+      showDiagonals(svg, vertices, infoResultsDiv)
+      showNextButton()
+    })
+  }
+
+  if (infoShowParallelBtn) {
+    infoShowParallelBtn.addEventListener('click', () => {
+      showParallelSides(svg, vertices, infoResultsDiv)
+      showNextButton()
+    })
+  }
+
+  // 다음 단계 버튼 클릭 시 평행사변형 판단 입력 창 표시
+  if (infoNextBtn && parallelogramJudgment) {
+    infoNextBtn.addEventListener('click', () => {
+      parallelogramJudgment.style.display = 'block'
+    })
+  }
+}
+
+// 대변의 평행 여부 확인
+function showParallelSides(svg, vertices, resultsDiv) {
+  // 기존 라벨 제거하지 않음 (다른 정보와 함께 표시 가능)
+  
+  const parallelResults = []
+  const tolerance = 0.01
+  
+  // 네 변의 기울기 계산
+  const slopes = []
+  for (let i = 0; i < 4; i++) {
+    const v1 = vertices[i]
+    const v2 = vertices[(i + 1) % 4]
+    const dx = v2.x - v1.x
+    const dy = v2.y - v1.y
+    
+    // 수직선 처리
+    if (Math.abs(dx) < tolerance) {
+      slopes.push({ isVertical: true, slope: Infinity })
+    } else {
+      slopes.push({ isVertical: false, slope: dy / dx })
+    }
+  }
+  
+  // 대변 쌍 확인 (0-2, 1-3)
+  const pair1Parallel = areParallel(
+    { x1: vertices[0].x, y1: vertices[0].y, x2: vertices[1].x, y2: vertices[1].y },
+    { x1: vertices[2].x, y1: vertices[2].y, x2: vertices[3].x, y2: vertices[3].y },
+    tolerance
+  )
+  
+  const pair2Parallel = areParallel(
+    { x1: vertices[1].x, y1: vertices[1].y, x2: vertices[2].x, y2: vertices[2].y },
+    { x1: vertices[3].x, y1: vertices[3].y, x2: vertices[0].x, y2: vertices[0].y },
+    tolerance
+  )
+  
+  resultsDiv.innerHTML = `
+    <div class="result-item">
+      <strong>대변의 평행 여부:</strong>
+    </div>
+    <div class="result-item">
+      첫 번째 쌍 (AB와 CD): ${pair1Parallel ? '✓ 평행합니다' : '✗ 평행하지 않습니다'}
+    </div>
+    <div class="result-item">
+      두 번째 쌍 (BC와 DA): ${pair2Parallel ? '✓ 평행합니다' : '✗ 평행하지 않습니다'}
+    </div>
+    <div class="result-item">
+      ${pair1Parallel && pair2Parallel ? '✓ 두 쌍의 대변이 모두 평행합니다.' : '✗ 두 쌍의 대변이 모두 평행하지 않습니다.'}
+    </div>
+  `
 }
 
 // 평행사변형 분석 UI 설정
