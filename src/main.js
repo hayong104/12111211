@@ -172,13 +172,13 @@ function renderActivity(conditionId) {
             <li>격자 위의 점을 한 번 클릭하여 첫 번째 점을 정합니다.</li>
             <li>다른 격자점을 한 번 더 클릭하면 두 점을 잇는 선분이 만들어집니다.</li>
             <li>이 과정을 반복하여 평행사변형이 될 수 있는 모양을 스스로 만들어 봅니다.</li>
-            <li>실수했다면 <strong>"점 지우기"</strong> 또는 <strong>"선분 지우기"</strong> 버튼으로 한 단계씩 되돌릴 수 있습니다.</li>
+            <li>실수했다면 <strong>"이전 선분 지우기"</strong> 버튼으로 한 단계씩 되돌릴 수 있습니다.</li>
             <li>처음부터 다시 하고 싶다면 <strong>“모두 지우기”</strong> 버튼을 눌러 전체를 지웁니다.</li>
           </ol>
 
           <div class="activity-controls">
-            <button type="button" id="eraser-button" class="control-button">
-              점 또는 선분 지우기
+            <button type="button" id="undo-segment-button" class="control-button">
+              이전 선분 지우기
             </button>
             <button
               type="button"
@@ -377,49 +377,16 @@ function setupActivityEvents() {
   svg.addEventListener('mouseup', stopDrag)
   svg.addEventListener('mouseleave', stopDrag)
 
-  const eraserButton = document.getElementById('eraser-button')
+  const undoSegmentButton = document.getElementById('undo-segment-button')
   
-  if (eraserButton) {
-    eraserButton.addEventListener('click', () => {
-      activityState.eraserMode = !activityState.eraserMode
-      if (activityState.eraserMode) {
-        eraserButton.classList.add('control-button--active')
-        eraserButton.textContent = '지우개 모드 (클릭하여 취소)'
-        svg.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\'%3E%3Cpath d=\'M15.5 2L19.5 6L15.5 10M4.5 6L19.5 21L15.5 17L2.5 4L4.5 2L15.5 13L19.5 9L4.5 6Z\' stroke=\'%23334155\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E") 12 12, auto'
-        // 선분에도 커서 적용
-        const segments = svg.querySelectorAll('.segment-line')
-        segments.forEach(seg => {
-          seg.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\'%3E%3Cpath d=\'M15.5 2L19.5 6L15.5 10M4.5 6L19.5 21L15.5 17L2.5 4L4.5 2L15.5 13L19.5 9L4.5 6Z\' stroke=\'%23334155\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E") 12 12, auto'
-        })
-      } else {
-        eraserButton.classList.remove('control-button--active')
-        eraserButton.textContent = '점 또는 선분 지우기'
-        svg.style.cursor = 'default'
-        // 선분 커서도 원래대로
-        const segments = svg.querySelectorAll('.segment-line')
-        segments.forEach(seg => {
-          seg.style.cursor = 'default'
-        })
-      }
+  if (undoSegmentButton) {
+    undoSegmentButton.addEventListener('click', () => {
+      handleUndoSegment(svg)
     })
   }
   
-  // 지우개 모드에서 점/선분 클릭 시 제거
+  // 일반 모드 클릭 이벤트
   svg.addEventListener('click', (event) => {
-    if (activityState.eraserMode) {
-      const point = event.target.closest('.grid-point')
-      const segment = event.target.closest('.segment-line')
-      
-      if (point) {
-        handleEraserPointClick(point, svg)
-        return
-      } else if (segment) {
-        handleEraserSegmentClick(segment, svg)
-        return
-      }
-    }
-    
-    // 일반 모드
     const point = event.target.closest('.grid-point')
     if (!point) return
     handlePointClick(point, svg)
@@ -747,22 +714,25 @@ function handleEraserPointClick(point, svg) {
   }
 }
 
-// 지우개 모드: 선분 클릭 시 제거
-function handleEraserSegmentClick(segment, svg) {
-  // 선분 찾기
-  const action = activityState.actions.find(a => a.type === 'segment' && a.element === segment)
-  if (!action) return
-  
-  // 선분 제거
-  segment.remove()
-  const actionIndex = activityState.actions.indexOf(action)
-  if (actionIndex > -1) {
-    activityState.actions.splice(actionIndex, 1)
+// 이전 선분 지우기
+function handleUndoSegment(svg) {
+  // 가장 최근의 선분 액션 찾기
+  let foundIndex = -1
+  for (let i = activityState.actions.length - 1; i >= 0; i--) {
+    if (activityState.actions[i].type === 'segment') {
+      foundIndex = i
+      break
+    }
   }
   
+  if (foundIndex === -1) return
+  
+  const last = activityState.actions.splice(foundIndex, 1)[0]
+  last.element.remove()
+  
   // 선분과 연결된 점들의 라벨 제거
-  if (action.point1) {
-    const vertex1 = activityState.vertices.find(v => v.element === action.point1)
+  if (last.point1) {
+    const vertex1 = activityState.vertices.find(v => v.element === last.point1)
     if (vertex1 && vertex1.labelEl) {
       vertex1.labelEl.remove()
       const index = activityState.vertices.indexOf(vertex1)
@@ -771,8 +741,69 @@ function handleEraserSegmentClick(segment, svg) {
       }
     }
   }
-  if (action.point2) {
-    const vertex2 = activityState.vertices.find(v => v.element === action.point2)
+  if (last.point2) {
+    const vertex2 = activityState.vertices.find(v => v.element === last.point2)
+    if (vertex2 && vertex2.labelEl) {
+      vertex2.labelEl.remove()
+      const index = activityState.vertices.indexOf(vertex2)
+      if (index > -1) {
+        activityState.vertices.splice(index, 1)
+      }
+    }
+  }
+  
+  // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
+  if (activityState.quadShape && activityState.vertices.length !== 4) {
+    activityState.quadShape.remove()
+    activityState.quadShape = null
+    activityState.orderedVertices = null
+    // 챗봇 섹션 숨기기
+    const chatSection = document.querySelector('.chat-section')
+    if (chatSection) {
+      chatSection.style.display = 'none'
+    }
+    const chatCheckBtn = document.getElementById('chat-check')
+    if (chatCheckBtn) {
+      chatCheckBtn.disabled = true
+    }
+  }
+  
+  // 버튼 상태 업데이트
+  const makeQuadButton = document.getElementById('make-quad-button')
+  if (makeQuadButton) {
+    makeQuadButton.disabled = activityState.vertices.length !== 4
+  }
+}
+
+// 이전 선분 지우기
+function handleUndoSegment(svg) {
+  // 가장 최근의 선분 액션 찾기
+  let foundIndex = -1
+  for (let i = activityState.actions.length - 1; i >= 0; i--) {
+    if (activityState.actions[i].type === 'segment') {
+      foundIndex = i
+      break
+    }
+  }
+  
+  if (foundIndex === -1) return
+  
+  const last = activityState.actions.splice(foundIndex, 1)[0]
+  last.element.remove()
+  
+  // 선분과 연결된 점들의 라벨 제거
+  if (last.point1) {
+    const vertex1 = activityState.vertices.find(v => v.element === last.point1)
+    if (vertex1 && vertex1.labelEl) {
+      vertex1.labelEl.remove()
+      const index = activityState.vertices.indexOf(vertex1)
+      if (index > -1) {
+        activityState.vertices.splice(index, 1)
+      }
+    }
+  }
+  if (last.point2) {
+    const vertex2 = activityState.vertices.find(v => v.element === last.point2)
     if (vertex2 && vertex2.labelEl) {
       vertex2.labelEl.remove()
       const index = activityState.vertices.indexOf(vertex2)
@@ -863,6 +894,12 @@ function handleMakeQuadrilateral(svg) {
   }
 
   // 평행사변형 판단 이유 작성 섹션은 평행사변형이라고 판단했을 때 표시됨
+  
+  // 미니어처 창이 있으면 계속 표시
+  const miniWindow = document.getElementById('miniature-activity-window')
+  if (miniWindow) {
+    miniWindow.style.display = 'block'
+  }
 }
 
 // 전체 초기화
@@ -1459,6 +1496,12 @@ function setupQuadInfoSection() {
   } else {
     // 이미 존재하면 표시
     fixedWindow.style.display = 'block'
+  }
+  
+  // 미니어처 창 숨기기 (고정 창이 표시되면 미니어처 창 숨김)
+  const miniWindow2 = document.getElementById('miniature-activity-window')
+  if (miniWindow2) {
+    miniWindow2.style.display = 'none'
   }
   
   // 사각형 미리보기 생성
