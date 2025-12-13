@@ -210,7 +210,7 @@ function renderActivity(conditionId) {
               class="chat-input"
               type="text"
               name="message"
-              placeholder="예: 내가 만든 사각형이 조건 1을 만족하나요?"
+              placeholder=""
               required
               autocomplete="off"
               disabled
@@ -248,13 +248,18 @@ function renderActivity(conditionId) {
         </div>
         
         <div class="parallelogram-analysis" id="parallelogram-analysis" style="display: none; margin-top: 20px;">
-          <h2 class="section-title">평행사변형이 되는 이유 확인</h2>
-          <div class="analysis-controls">
-            <button type="button" id="show-lengths-btn" class="control-button">각 변의 길이 보기</button>
-            <button type="button" id="show-angles-btn" class="control-button">네 각의 크기 보기</button>
-            <button type="button" id="show-diagonals-btn" class="control-button">대각선 그리고 이등분 확인</button>
+          <h2 class="section-title">평행사변형이라고 판단한 이유를 작성하세요</h2>
+          <div class="judgment-reason-section">
+            <textarea
+              id="judgment-reason-input"
+              class="judgment-reason-textarea"
+              placeholder="평행사변형이라고 판단한 이유를 작성해주세요."
+              rows="6"
+            ></textarea>
+            <button type="button" id="judgment-reason-submit-btn" class="control-button" style="margin-top: 12px;">
+              작성 완료
+            </button>
           </div>
-          <div id="analysis-results" class="analysis-results"></div>
         </div>
       </section>
     </main>
@@ -582,8 +587,7 @@ function handleMakeQuadrilateral(svg) {
     analysisSection.style.display = 'none'
   }
 
-  // 평행사변형 판단 UI 이벤트 연결
-  setupParallelogramAnalysis(svg, ordered)
+  // 평행사변형 판단 이유 작성 섹션은 평행사변형이라고 판단했을 때 표시됨
 }
 
 // 사각형의 한 변을 선택해 평행선 자 생성
@@ -964,10 +968,11 @@ function setupChatUI() {
       const isParallelogram = hasParallelogram && !hasNegative
       
       if (isParallelogram) {
-        // 평행사변형이라고 답한 경우 - 평행사변형 판단 파트 표시
+        // 평행사변형이라고 답한 경우 - 평행사변형 판단 이유 작성 파트 표시
         const analysisSection = document.getElementById('parallelogram-analysis')
         if (analysisSection) {
           analysisSection.style.display = 'block'
+          setupJudgmentReasonSection()
         }
         parallelogramJudgment.style.display = 'none'
       } else if (hasParallelogram && hasNegative) {
@@ -1213,7 +1218,7 @@ async function callChatGPT(apiKey, userMessage, context) {
     {
       role: 'system',
       content:
-        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생들이 만든 선분들이 "선택한 조건"을 만족하는지 확인하고, 학생의 질문에 직접적으로 답변해줘. 단순히 조건에 맞는지만 말하지 말고, 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘. 학생의 질문에 직접적으로 답변하는 것을 잊지 마.',
+        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘. 중요한 것은 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공하는 것이다.',
     },
     {
       role: 'user',
@@ -1221,7 +1226,7 @@ async function callChatGPT(apiKey, userMessage, context) {
         context,
         null,
         2
-      )}\n\n위 정보에서 segmentPairs 배열을 참고하여, 각 선분 쌍에 대해 다음 세 가지를 확인하고 피드백을 줘:\n1. areOppositeSides: 두 선분이 대변 관계인지\n2. areParallel: 두 선분이 평행한지\n3. sameLength: 두 선분의 길이가 같은지\n\n각 선분 쌍에 대해 이 세 가지 기준을 명확히 구분해서 설명해줘. 선분들에 대한 피드백만 해주고, 사각형이나 평행사변형에 대한 언급은 하지 마.`,
+      )}\n\n위 정보에서 segmentPairs 배열을 참고하여, 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 각 선분 쌍에 대해 다음 세 가지를 확인하되, 질문의 의도에 맞게 답변해줘:\n1. areOppositeSides: 두 선분이 대변 관계인지\n2. areParallel: 두 선분이 평행한지\n3. sameLength: 두 선분의 길이가 같은지\n\n각 선분 쌍에 대해 이 세 가지 기준을 명확히 구분해서 설명해줘. 선분들에 대한 피드백만 해주고, 사각형이나 평행사변형에 대한 언급은 하지 마.`,
     },
   ]
 
@@ -1363,10 +1368,10 @@ function showParallelSides(svg, vertices, resultsDiv) {
       parallelLine.remove()
     }
     
-    // 선택된 변 강조
+    // 선택된 변 강조 (진한 주황색)
     edges.forEach(e => {
       if (e.index === edgeIndex) {
-        e.line.style.stroke = '#16a34a'
+        e.line.style.stroke = '#ea580c'
         e.line.style.strokeWidth = '4'
       } else {
         e.line.style.stroke = '#2563eb'
@@ -1391,7 +1396,7 @@ function showParallelSides(svg, vertices, resultsDiv) {
     parallelLine.setAttribute('x2', String(midX + perpX + dx / 2))
     parallelLine.setAttribute('y2', String(midY + perpY + dy / 2))
     parallelLine.classList.add('parallel-check-line')
-    parallelLine.style.stroke = '#16a34a'
+    parallelLine.style.stroke = '#ea580c'
     parallelLine.style.strokeWidth = '2'
     parallelLine.style.strokeDasharray = '6 4'
     parallelLine.style.cursor = 'grab'
@@ -1473,26 +1478,22 @@ function showParallelSides(svg, vertices, resultsDiv) {
   `
 }
 
-// 평행사변형 분석 UI 설정
-function setupParallelogramAnalysis(svg, vertices) {
-  const showLengthsBtn = document.getElementById('show-lengths-btn')
-  const showAnglesBtn = document.getElementById('show-angles-btn')
-  const showDiagonalsBtn = document.getElementById('show-diagonals-btn')
-  const resultsDiv = document.getElementById('analysis-results')
+// 평행사변형 판단 이유 작성 섹션 설정
+function setupJudgmentReasonSection() {
+  const reasonInput = document.getElementById('judgment-reason-input')
+  const reasonSubmitBtn = document.getElementById('judgment-reason-submit-btn')
 
-  if (!showLengthsBtn || !showAnglesBtn || !showDiagonalsBtn || !resultsDiv) return
+  if (!reasonInput || !reasonSubmitBtn) return
 
-  // 기존 이벤트 리스너 제거 후 새로 추가
-  const newShowLengthsBtn = showLengthsBtn.cloneNode(true)
-  showLengthsBtn.parentNode.replaceChild(newShowLengthsBtn, showLengthsBtn)
-  const newShowAnglesBtn = showAnglesBtn.cloneNode(true)
-  showAnglesBtn.parentNode.replaceChild(newShowAnglesBtn, showAnglesBtn)
-  const newShowDiagonalsBtn = showDiagonalsBtn.cloneNode(true)
-  showDiagonalsBtn.parentNode.replaceChild(newShowDiagonalsBtn, showDiagonalsBtn)
-
-  newShowLengthsBtn.addEventListener('click', () => showSideLengths(svg, vertices, resultsDiv))
-  newShowAnglesBtn.addEventListener('click', () => showAngles(svg, vertices, resultsDiv))
-  newShowDiagonalsBtn.addEventListener('click', () => showDiagonals(svg, vertices, resultsDiv))
+  reasonSubmitBtn.addEventListener('click', () => {
+    const reason = reasonInput.value.trim()
+    if (reason) {
+      alert('평행사변형이라고 판단한 이유가 저장되었습니다.')
+      // 여기에 추가적인 처리 로직을 넣을 수 있습니다
+    } else {
+      alert('평행사변형이라고 판단한 이유를 작성해주세요.')
+    }
+  })
 }
 
 // 각 변의 길이 표시
