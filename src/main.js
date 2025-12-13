@@ -420,69 +420,52 @@ function setupActivityEvents() {
   makeQuadButton.addEventListener('click', () => handleMakeQuadrilateral(svg))
 }
 
-// 격자(SVG) 만들기 - 정삼각형 격자
+// 격자(SVG) 만들기 - 직사각형 격자 (7x7, 간격 감소)
 function createGridSvg() {
-  const GRID_ROWS = 7
-  const GRID_COLS = 7
-  const TRIANGLE_SIDE = 35 // 정삼각형 한 변의 길이
-  const PADDING = 10
-  const ROTATION_ANGLE = 18 // 격자 회전 각도 (도)
-
-  // 정삼각형의 높이
-  const TRIANGLE_HEIGHT = TRIANGLE_SIDE * Math.sqrt(3) / 2
+    const GRID_ROWS = 7
+    const GRID_COLS = 7
+    const PADDING = 10
+    
+    // === 변경된 부분: 가로/세로 간격 감소 ===
+    // 기존 35 -> 25로 감소
+    const HORIZONTAL_SPACING = 25 // 가로 간격
+    // 기존 55 -> 40로 감소 (세로가 가로보다 긴 비율 유지)
+    const VERTICAL_SPACING = 40  // 세로 간격
+    // ====================================
   
-  // 격자 크기 계산
-  const width = PADDING * 2 + TRIANGLE_SIDE * (GRID_COLS - 1) + TRIANGLE_SIDE / 2
-  const height = PADDING * 2 + TRIANGLE_HEIGHT * (GRID_ROWS - 1) + TRIANGLE_HEIGHT
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-  svg.setAttribute('width', '100%')
-  svg.setAttribute('height', '100%')
-  svg.classList.add('grid-svg')
+    // 격자 크기 계산
+    const width = PADDING * 2 + HORIZONTAL_SPACING * (GRID_COLS - 1)
+    const height = PADDING * 2 + VERTICAL_SPACING * (GRID_ROWS - 1)
   
-  // 보조선(격자선) 제거 - 격자점만 표시
-
-  // 격자점 (작은 원형 점) - 회전 그룹 밖에 배치, 정삼각형 격자의 꼭짓점에 배치
-  for (let r = 0; r < GRID_ROWS; r++) {
-    for (let c = 0; c < GRID_COLS; c++) {
-      // 홀수 행은 오프셋 적용
-      const offsetX = (r % 2 === 1) ? TRIANGLE_SIDE / 2 : 0
-      const x = PADDING + TRIANGLE_SIDE * c + offsetX
-      const y = PADDING + TRIANGLE_HEIGHT * r
-
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-      circle.setAttribute('cx', x)
-      circle.setAttribute('cy', y)
-      circle.setAttribute('r', 2.5)
-      circle.classList.add('grid-point')
-      circle.dataset.row = String(r)
-      circle.dataset.col = String(c)
-      // 원래 좌표 저장
-      circle.dataset.origX = String(x)
-      circle.dataset.origY = String(y)
-      // 회전 그룹 밖에 추가
-      svg.appendChild(circle)
-      
-      // 아래쪽 삼각형의 꼭짓점도 추가
-      if (r < GRID_ROWS - 1) {
-        const y2 = y + TRIANGLE_HEIGHT
-        const circle2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-        circle2.setAttribute('cx', x)
-        circle2.setAttribute('cy', y2)
-        circle2.setAttribute('r', 2.5)
-        circle2.classList.add('grid-point')
-        circle2.dataset.row = String(r + 0.5)
-        circle2.dataset.col = String(c)
-        circle2.dataset.origX = String(x)
-        circle2.dataset.origY = String(y2)
-        svg.appendChild(circle2)
-      }
-    }
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+    svg.setAttribute('width', '100%')
+    svg.setAttribute('height', '100%')
+    svg.classList.add('grid-svg')
+    
+    // 격자점 (작은 원형 점)
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        const x = PADDING + HORIZONTAL_SPACING * c
+        const y = PADDING + VERTICAL_SPACING * r
+  
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+        circle.setAttribute('cx', x)
+        circle.setAttribute('cy', y)
+        circle.setAttribute('r', 2.5) // 점 크기 유지
+        circle.classList.add('grid-point')
+        
+        circle.dataset.row = String(r)
+        circle.dataset.col = String(c)
+        circle.dataset.origX = String(x)
+        circle.dataset.origY = String(y)
+        
+        svg.appendChild(circle)
+      }
+    }
+  
+    return svg
   }
-
-  return svg
-}
 
 // 오른쪽 미니어처 창 생성
 function createMiniatureWindow(gridContainer) {
