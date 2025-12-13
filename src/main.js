@@ -117,8 +117,6 @@ const activityState = {
   isSending: false,
   chatUnlocked: false,
   currentCondition: null,
-  gridGroup: null,
-  analysisResults: null, // 평행사변형 분석 결과
   lengthLabels: [], // 길이 라벨
   angleLabels: [], // 각도 라벨
   diagonals: [], // 대각선
@@ -276,7 +274,6 @@ function renderActivity(conditionId) {
 // 활동 화면 이벤트 연결
 function setupActivityEvents() {
   const backButton = document.querySelector('.back-button')
-  const undoButton = document.getElementById('undo-button')
   const resetButton = document.getElementById('reset-button')
   const makeQuadButton = document.getElementById('make-quad-button')
   const gridContainer = document.getElementById('grid-container')
@@ -288,9 +285,6 @@ function setupActivityEvents() {
   const svg = createGridSvg()
   gridContainer.appendChild(svg)
   
-  // 미리보기 선을 위한 그룹 참조 저장 (회전된 그룹과 같은 그룹에 추가하기 위해)
-  const gridGroup = svg.querySelector('g[transform*="rotate"]')
-  activityState.gridGroup = gridGroup
 
   // 평행선 자 드래그용 상태
   let draggingRuler = null
@@ -431,8 +425,6 @@ function createGridSvg() {
   // 격자 크기 계산
   const width = PADDING * 2 + TRIANGLE_SIDE * (GRID_COLS - 1) + TRIANGLE_SIDE / 2
   const height = PADDING * 2 + TRIANGLE_HEIGHT * (GRID_ROWS - 1) + TRIANGLE_HEIGHT
-  const centerX = width / 2
-  const centerY = height / 2
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
@@ -765,201 +757,6 @@ function handleMakeQuadrilateral(svg) {
   // 평행사변형 판단 이유 작성 섹션은 평행사변형이라고 판단했을 때 표시됨
 }
 
-// 사각형의 한 변을 선택해 평행선 자 생성
-function createParallelRulerFromEdge(svg, clickX, clickY) {
-  if (!activityState.quadShape || activityState.vertices.length !== 4) return
-
-  // 기존 평행선 자 제거
-  activityState.parallelRulers.forEach((ruler) => ruler.remove())
-  activityState.parallelRulers = []
-
-  const verts = activityState.vertices
-  let bestIndex = 0
-  let bestDist = Infinity
-
-  // 클릭한 위치에서 가장 가까운 변 찾기
-  for (let i = 0; i < 4; i++) {
-    const a = verts[i]
-    const b = verts[(i + 1) % 4]
-    const ax = a.x
-    const ay = a.y
-    const bx = b.x
-    const by = b.y
-
-    const vx = bx - ax
-    const vy = by - ay
-    const wx = clickX - ax
-    const wy = clickY - ay
-
-    const len2 = vx * vx + vy * vy || 1
-    let t = (vx * wx + vy * wy) / len2
-    t = Math.max(0, Math.min(1, t))
-
-    const px = ax + t * vx
-    const py = ay + t * vy
-    const dist = Math.hypot(clickX - px, clickY - py)
-
-    if (dist < bestDist) {
-      bestDist = dist
-      bestIndex = i
-    }
-  }
-
-  const a = verts[bestIndex]
-  const b = verts[(bestIndex + 1) % 4]
-
-  const ruler = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  ruler.setAttribute('x1', String(a.x))
-  ruler.setAttribute('y1', String(a.y))
-  ruler.setAttribute('x2', String(b.x))
-  ruler.setAttribute('y2', String(b.y))
-  ruler.classList.add('parallel-ruler')
-
-  svg.appendChild(ruler)
-  activityState.parallelRulers.push(ruler)
-}
-
-// 직전 점 되돌리기
-function handleUndoPoint() {
-  // 가장 최근의 점 선택 액션 찾기
-  let foundIndex = -1
-  for (let i = activityState.actions.length - 1; i >= 0; i--) {
-    if (activityState.actions[i].type === 'select') {
-      foundIndex = i
-      break
-    }
-  }
-  
-  if (foundIndex === -1) return
-  
-  const last = activityState.actions.splice(foundIndex, 1)[0]
-  
-  last.element.classList.remove('grid-point--active')
-  if (activityState.selectedPoint === last.element) {
-    activityState.selectedPoint = null
-  }
-  // 점 선택을 되돌릴 때 해당 점의 라벨도 제거
-  const vertex = activityState.vertices.find(v => v.element === last.element)
-  if (vertex && vertex.labelEl) {
-    vertex.labelEl.remove()
-    const index = activityState.vertices.indexOf(vertex)
-    if (index > -1) {
-      activityState.vertices.splice(index, 1)
-    }
-    // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
-    if (activityState.quadShape && activityState.vertices.length !== 4) {
-      activityState.quadShape.remove()
-      activityState.quadShape = null
-      activityState.orderedVertices = null
-      // 챗봇 섹션 숨기기
-      const chatSection = document.querySelector('.chat-section')
-      if (chatSection) {
-        chatSection.style.display = 'none'
-      }
-      const chatCheckBtn = document.getElementById('chat-check')
-      if (chatCheckBtn) {
-        chatCheckBtn.disabled = true
-      }
-      // 분석 결과 제거
-      activityState.lengthLabels.forEach(label => label.remove())
-      activityState.lengthLabels = []
-      activityState.angleLabels.forEach(label => label.remove())
-      activityState.angleLabels = []
-      activityState.diagonals.forEach(diag => diag.remove())
-      activityState.diagonals = []
-      const resultsDiv = document.getElementById('analysis-results')
-      if (resultsDiv) {
-        resultsDiv.innerHTML = ''
-      }
-      const analysisSection = document.getElementById('parallelogram-analysis')
-      if (analysisSection) {
-        analysisSection.style.display = 'none'
-      }
-    }
-    // 버튼 상태 업데이트
-    const makeQuadButton = document.getElementById('make-quad-button')
-    if (makeQuadButton) {
-      makeQuadButton.disabled = activityState.vertices.length !== 4
-    }
-  }
-}
-
-// 직전 선분 되돌리기
-function handleUndoSegment() {
-  // 가장 최근의 선분 액션 찾기
-  let foundIndex = -1
-  for (let i = activityState.actions.length - 1; i >= 0; i--) {
-    if (activityState.actions[i].type === 'segment') {
-      foundIndex = i
-      break
-    }
-  }
-  
-  if (foundIndex === -1) return
-  
-  const last = activityState.actions.splice(foundIndex, 1)[0]
-  last.element.remove()
-  
-  // 선분과 연결된 점들의 라벨 제거
-  if (last.point1) {
-    const vertex1 = activityState.vertices.find(v => v.element === last.point1)
-    if (vertex1 && vertex1.labelEl) {
-      vertex1.labelEl.remove()
-      const index = activityState.vertices.indexOf(vertex1)
-      if (index > -1) {
-        activityState.vertices.splice(index, 1)
-      }
-    }
-  }
-  if (last.point2) {
-    const vertex2 = activityState.vertices.find(v => v.element === last.point2)
-    if (vertex2 && vertex2.labelEl) {
-      vertex2.labelEl.remove()
-      const index = activityState.vertices.indexOf(vertex2)
-      if (index > -1) {
-        activityState.vertices.splice(index, 1)
-      }
-    }
-  }
-  
-  // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
-  if (activityState.quadShape && activityState.vertices.length !== 4) {
-    activityState.quadShape.remove()
-    activityState.quadShape = null
-    activityState.orderedVertices = null
-    // 챗봇 섹션 숨기기
-    const chatSection = document.querySelector('.chat-section')
-    if (chatSection) {
-      chatSection.style.display = 'none'
-    }
-    const chatCheckBtn = document.getElementById('chat-check')
-    if (chatCheckBtn) {
-      chatCheckBtn.disabled = true
-    }
-    // 분석 결과 제거
-    activityState.lengthLabels.forEach(label => label.remove())
-    activityState.lengthLabels = []
-    activityState.angleLabels.forEach(label => label.remove())
-    activityState.angleLabels = []
-    activityState.diagonals.forEach(diag => diag.remove())
-    activityState.diagonals = []
-    const resultsDiv = document.getElementById('analysis-results')
-    if (resultsDiv) {
-      resultsDiv.innerHTML = ''
-    }
-    const analysisSection = document.getElementById('parallelogram-analysis')
-    if (analysisSection) {
-      analysisSection.style.display = 'none'
-    }
-  }
-  
-  // 버튼 상태 업데이트
-  const makeQuadButton = document.getElementById('make-quad-button')
-  if (makeQuadButton) {
-    makeQuadButton.disabled = activityState.vertices.length !== 4
-  }
-}
-
 // 전체 초기화
 function handleReset() {
   activityState.actions.forEach((action) => {
@@ -1009,10 +806,6 @@ function handleReset() {
   const chatCheckBtn = document.getElementById('chat-check')
   if (chatCheckBtn) {
     chatCheckBtn.disabled = true
-  }
-  const resultsDiv = document.getElementById('analysis-results')
-  if (resultsDiv) {
-    resultsDiv.innerHTML = ''
   }
 
   // 챗봇 초기화
@@ -1185,8 +978,6 @@ function setupChatUI() {
   // 조건 확인 완료 버튼과 평행사변형 판단 입력 창 이벤트
   const conditionCompleteBtn = document.getElementById('condition-complete-btn')
   const parallelogramJudgment = document.getElementById('parallelogram-judgment')
-  const judgmentInput = document.getElementById('parallelogram-input')
-  const judgmentSubmitBtn = document.getElementById('judgment-submit-btn')
 
   // 조건 확인 완료 버튼 클릭
   if (conditionCompleteBtn) {
