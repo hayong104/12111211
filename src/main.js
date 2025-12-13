@@ -995,13 +995,13 @@ function addChatMessage(role, text, isTyping = false) {
     item.innerHTML = '<span class="typing-indicator">...</span>'
     item.dataset.typing = 'true'
   } else {
-    // 텍스트를 줄바꿈 처리하여 표시
-    const formattedText = text.replace(/\n\n/g, '\n').split('\n').map(line => {
+    // 텍스트를 줄바꿈 처리하여 표시 (빈 줄 제거)
+    const formattedText = text.split('\n').filter(line => line.trim() !== '').map(line => {
       // (1), (2), (3) 같은 형식의 줄은 문단으로 구분
       if (/^\(\d+\)/.test(line.trim())) {
         return `<div class="feedback-item">${line.trim()}</div>`
       }
-      return line
+      return line.trim()
     }).join('<br>')
     item.innerHTML = formattedText
   }
@@ -1013,12 +1013,13 @@ function addChatMessage(role, text, isTyping = false) {
 
 function updateTypingMessage(messageElement, text) {
   if (messageElement && messageElement.dataset.typing === 'true') {
-    const formattedText = text.replace(/\n\n/g, '\n').split('\n').map(line => {
+    // 텍스트를 줄바꿈 처리하여 표시 (빈 줄 제거)
+    const formattedText = text.split('\n').filter(line => line.trim() !== '').map(line => {
       // (1), (2), (3) 같은 형식의 줄은 문단으로 구분
       if (/^\(\d+\)/.test(line.trim())) {
         return `<div class="feedback-item">${line.trim()}</div>`
       }
-      return line
+      return line.trim()
     }).join('<br>')
     messageElement.innerHTML = formattedText
     messageElement.dataset.typing = 'false'
@@ -1263,21 +1264,21 @@ function setupQuadInfoSection() {
 
   if (infoShowLengthsBtn) {
     infoShowLengthsBtn.addEventListener('click', () => {
-      showSideLengths(svg, vertices, infoResultsDiv)
+      showSideLengths(svg, vertices, infoResultsDiv, false)
       showNextButton()
     })
   }
 
   if (infoShowAnglesBtn) {
     infoShowAnglesBtn.addEventListener('click', () => {
-      showAngles(svg, vertices, infoResultsDiv)
+      showAngles(svg, vertices, infoResultsDiv, false)
       showNextButton()
     })
   }
 
   if (infoShowDiagonalsBtn) {
     infoShowDiagonalsBtn.addEventListener('click', () => {
-      showDiagonals(svg, vertices, infoResultsDiv)
+      showDiagonals(svg, vertices, infoResultsDiv, false)
       showNextButton()
     })
   }
@@ -1299,52 +1300,164 @@ function setupQuadInfoSection() {
 
 // 대변의 평행 여부 확인
 function showParallelSides(svg, vertices, resultsDiv) {
-  // 기존 라벨 제거하지 않음 (다른 정보와 함께 표시 가능)
+  // 기존 평행선 제거
+  activityState.parallelRulers.forEach(ruler => ruler.remove())
+  activityState.parallelRulers = []
   
-  const parallelResults = []
-  const tolerance = 0.01
+  // 변을 클릭 가능하게 만들기
+  const edgeLabels = ['AB', 'BC', 'CD', 'DA']
+  const edges = []
   
-  // 네 변의 기울기 계산
-  const slopes = []
   for (let i = 0; i < 4; i++) {
     const v1 = vertices[i]
     const v2 = vertices[(i + 1) % 4]
-    const dx = v2.x - v1.x
-    const dy = v2.y - v1.y
     
-    // 수직선 처리
-    if (Math.abs(dx) < tolerance) {
-      slopes.push({ isVertical: true, slope: Infinity })
-    } else {
-      slopes.push({ isVertical: false, slope: dy / dx })
-    }
+    // 각 변을 선으로 그리기 (클릭 가능하도록)
+    const edgeLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    edgeLine.setAttribute('x1', String(v1.x))
+    edgeLine.setAttribute('y1', String(v1.y))
+    edgeLine.setAttribute('x2', String(v2.x))
+    edgeLine.setAttribute('y2', String(v2.y))
+    edgeLine.classList.add('edge-selector')
+    edgeLine.dataset.edgeIndex = String(i)
+    edgeLine.style.cursor = 'pointer'
+    edgeLine.style.stroke = '#2563eb'
+    edgeLine.style.strokeWidth = '3'
+    edgeLine.style.opacity = '0.6'
+    svg.appendChild(edgeLine)
+    activityState.parallelRulers.push(edgeLine)
+    
+    edges.push({
+      index: i,
+      label: edgeLabels[i],
+      v1: v1,
+      v2: v2,
+      line: edgeLine
+    })
   }
   
-  // 대변 쌍 확인 (0-2, 1-3)
-  const pair1Parallel = areParallel(
-    { x1: vertices[0].x, y1: vertices[0].y, x2: vertices[1].x, y2: vertices[1].y },
-    { x1: vertices[2].x, y1: vertices[2].y, x2: vertices[3].x, y2: vertices[3].y },
-    tolerance
-  )
+  // 변 클릭 이벤트
+  let selectedEdge = null
+  let parallelLine = null
   
-  const pair2Parallel = areParallel(
-    { x1: vertices[1].x, y1: vertices[1].y, x2: vertices[2].x, y2: vertices[2].y },
-    { x1: vertices[3].x, y1: vertices[3].y, x2: vertices[0].x, y2: vertices[0].y },
-    tolerance
-  )
+  const handleEdgeClick = (event) => {
+    const edgeLine = event.target.closest('.edge-selector')
+    if (!edgeLine) return
+    
+    const edgeIndex = parseInt(edgeLine.dataset.edgeIndex)
+    selectedEdge = edges[edgeIndex]
+    
+    // 기존 평행선 제거
+    if (parallelLine) {
+      parallelLine.remove()
+    }
+    
+    // 선택된 변 강조
+    edges.forEach(e => {
+      if (e.index === edgeIndex) {
+        e.line.style.stroke = '#16a34a'
+        e.line.style.strokeWidth = '4'
+      } else {
+        e.line.style.stroke = '#2563eb'
+        e.line.style.strokeWidth = '3'
+      }
+    })
+    
+    // 평행선 생성 (초기 위치는 선택된 변의 중점을 지나도록)
+    const midX = (selectedEdge.v1.x + selectedEdge.v2.x) / 2
+    const midY = (selectedEdge.v1.y + selectedEdge.v2.y) / 2
+    const dx = selectedEdge.v2.x - selectedEdge.v1.x
+    const dy = selectedEdge.v2.y - selectedEdge.v1.y
+    const length = Math.hypot(dx, dy)
+    
+    // 평행선의 방향 벡터
+    const perpX = -dy / length * 50 // 수직 방향으로 50픽셀 이동
+    const perpY = dx / length * 50
+    
+    parallelLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    parallelLine.setAttribute('x1', String(midX + perpX - dx / 2))
+    parallelLine.setAttribute('y1', String(midY + perpY - dy / 2))
+    parallelLine.setAttribute('x2', String(midX + perpX + dx / 2))
+    parallelLine.setAttribute('y2', String(midY + perpY + dy / 2))
+    parallelLine.classList.add('parallel-check-line')
+    parallelLine.style.stroke = '#ef4444'
+    parallelLine.style.strokeWidth = '2'
+    parallelLine.style.strokeDasharray = '6 4'
+    parallelLine.style.cursor = 'grab'
+    svg.appendChild(parallelLine)
+    activityState.parallelRulers.push(parallelLine)
+    
+    // 평행선 드래그 기능
+    let isDragging = false
+    let lastMousePos = null
+    
+    const startDrag = (e) => {
+      if (e.target === parallelLine) {
+        isDragging = true
+        const rect = svg.getBoundingClientRect()
+        lastMousePos = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        }
+      }
+    }
+    
+    const drag = (e) => {
+      if (!isDragging || !lastMousePos) return
+      
+      const rect = svg.getBoundingClientRect()
+      const currentX = e.clientX - rect.left
+      const currentY = e.clientY - rect.top
+      
+      const dx = currentX - lastMousePos.x
+      const dy = currentY - lastMousePos.y
+      
+      const x1 = parseFloat(parallelLine.getAttribute('x1'))
+      const y1 = parseFloat(parallelLine.getAttribute('y1'))
+      const x2 = parseFloat(parallelLine.getAttribute('x2'))
+      const y2 = parseFloat(parallelLine.getAttribute('y2'))
+      
+      parallelLine.setAttribute('x1', String(x1 + dx))
+      parallelLine.setAttribute('y1', String(y1 + dy))
+      parallelLine.setAttribute('x2', String(x2 + dx))
+      parallelLine.setAttribute('y2', String(y2 + dy))
+      
+      lastMousePos = { x: currentX, y: currentY }
+    }
+    
+    const stopDrag = () => {
+      isDragging = false
+      lastMousePos = null
+    }
+    
+    parallelLine.addEventListener('mousedown', startDrag)
+    svg.addEventListener('mousemove', drag)
+    svg.addEventListener('mouseup', stopDrag)
+    svg.addEventListener('mouseleave', stopDrag)
+    
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>대변의 평행 여부 확인:</strong>
+      </div>
+      <div class="result-item">
+        확인하고 싶은 변을 클릭하세요. 그 변과 평행한 직선이 나타나며, 드래그하여 움직일 수 있습니다.
+      </div>
+      <div class="result-item">
+        현재 선택된 변: ${selectedEdge ? selectedEdge.label : '없음'}
+      </div>
+    `
+  }
+  
+  edges.forEach(edge => {
+    edge.line.addEventListener('click', handleEdgeClick)
+  })
   
   resultsDiv.innerHTML = `
     <div class="result-item">
-      <strong>대변의 평행 여부:</strong>
+      <strong>대변의 평행 여부 확인:</strong>
     </div>
     <div class="result-item">
-      첫 번째 쌍 (AB와 CD): ${pair1Parallel ? '✓ 평행합니다' : '✗ 평행하지 않습니다'}
-    </div>
-    <div class="result-item">
-      두 번째 쌍 (BC와 DA): ${pair2Parallel ? '✓ 평행합니다' : '✗ 평행하지 않습니다'}
-    </div>
-    <div class="result-item">
-      ${pair1Parallel && pair2Parallel ? '✓ 두 쌍의 대변이 모두 평행합니다.' : '✗ 두 쌍의 대변이 모두 평행하지 않습니다.'}
+      확인하고 싶은 변을 클릭하세요. 그 변과 평행한 직선이 나타나며, 드래그하여 움직일 수 있습니다.
     </div>
   `
 }
@@ -1372,7 +1485,7 @@ function setupParallelogramAnalysis(svg, vertices) {
 }
 
 // 각 변의 길이 표시
-function showSideLengths(svg, vertices, resultsDiv) {
+function showSideLengths(svg, vertices, resultsDiv, showJudgment = true) {
   // 기존 길이 라벨 제거
   activityState.lengthLabels.forEach(label => label.remove())
   activityState.lengthLabels = []
@@ -1399,19 +1512,27 @@ function showSideLengths(svg, vertices, resultsDiv) {
   }
 
   // 결과 설명
-  const oppositeEqual = (lengths[0] === lengths[2] && lengths[1] === lengths[3])
-  resultsDiv.innerHTML = `
-    <div class="result-item">
-      <strong>각 변의 길이:</strong> AB = ${lengths[0]}, BC = ${lengths[1]}, CD = ${lengths[2]}, DA = ${lengths[3]}
-    </div>
-    <div class="result-item">
-      <strong>대변의 길이 비교:</strong> ${oppositeEqual ? '✓ 두 쌍의 대변의 길이가 각각 같습니다.' : '✗ 두 쌍의 대변의 길이가 같지 않습니다.'}
-    </div>
-  `
+  if (showJudgment) {
+    const oppositeEqual = (lengths[0] === lengths[2] && lengths[1] === lengths[3])
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>각 변의 길이:</strong> AB = ${lengths[0]}, BC = ${lengths[1]}, CD = ${lengths[2]}, DA = ${lengths[3]}
+      </div>
+      <div class="result-item">
+        <strong>대변의 길이 비교:</strong> ${oppositeEqual ? '✓ 두 쌍의 대변의 길이가 각각 같습니다.' : '✗ 두 쌍의 대변의 길이가 같지 않습니다.'}
+      </div>
+    `
+  } else {
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>네 변의 길이:</strong> AB = ${lengths[0]}, BC = ${lengths[1]}, CD = ${lengths[2]}, DA = ${lengths[3]}
+      </div>
+    `
+  }
 }
 
 // 네 각의 크기 표시
-function showAngles(svg, vertices, resultsDiv) {
+function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
   // 기존 각도 라벨 제거
   activityState.angleLabels.forEach(label => label.remove())
   activityState.angleLabels = []
@@ -1442,19 +1563,27 @@ function showAngles(svg, vertices, resultsDiv) {
   }
 
   // 결과 설명
-  const oppositeEqual = (angles[0] === angles[2] && angles[1] === angles[3])
-  resultsDiv.innerHTML = `
-    <div class="result-item">
-      <strong>네 각의 크기:</strong> ∠A = ${angles[0]}°, ∠B = ${angles[1]}°, ∠C = ${angles[2]}°, ∠D = ${angles[3]}°
-    </div>
-    <div class="result-item">
-      <strong>대각의 크기 비교:</strong> ${oppositeEqual ? '✓ 두 쌍의 대각의 크기가 각각 같습니다.' : '✗ 두 쌍의 대각의 크기가 같지 않습니다.'}
-    </div>
-  `
+  if (showJudgment) {
+    const oppositeEqual = (angles[0] === angles[2] && angles[1] === angles[3])
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>네 각의 크기:</strong> ∠A = ${angles[0]}°, ∠B = ${angles[1]}°, ∠C = ${angles[2]}°, ∠D = ${angles[3]}°
+      </div>
+      <div class="result-item">
+        <strong>대각의 크기 비교:</strong> ${oppositeEqual ? '✓ 두 쌍의 대각의 크기가 각각 같습니다.' : '✗ 두 쌍의 대각의 크기가 같지 않습니다.'}
+      </div>
+    `
+  } else {
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>네 내각의 크기:</strong> ∠A = ${angles[0]}°, ∠B = ${angles[1]}°, ∠C = ${angles[2]}°, ∠D = ${angles[3]}°
+      </div>
+    `
+  }
 }
 
 // 대각선 그리고 이등분 확인
-function showDiagonals(svg, vertices, resultsDiv) {
+function showDiagonals(svg, vertices, resultsDiv, showJudgment = true) {
   // 기존 대각선 제거
   activityState.diagonals.forEach(diag => diag.remove())
   activityState.diagonals = []
@@ -1497,17 +1626,7 @@ function showDiagonals(svg, vertices, resultsDiv) {
     y: p1.y + t * (p2.y - p1.y)
   }
 
-  // 각 대각선의 중점 계산
-  const mid1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
-  const mid2 = { x: (p3.x + p4.x) / 2, y: (p3.y + p4.y) / 2 }
-
-  // 교점과 중점의 거리
-  const dist1 = Math.hypot(intersection.x - mid1.x, intersection.y - mid1.y)
-  const dist2 = Math.hypot(intersection.x - mid2.x, intersection.y - mid2.y)
-
-  const bisects = dist1 < 2 && dist2 < 2 // 2픽셀 오차 허용
-
-  // 교점 표시
+  // 교점 표시 및 라벨
   const intersectionPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
   intersectionPoint.setAttribute('cx', String(intersection.x))
   intersectionPoint.setAttribute('cy', String(intersection.y))
@@ -1516,13 +1635,55 @@ function showDiagonals(svg, vertices, resultsDiv) {
   svg.appendChild(intersectionPoint)
   activityState.diagonals.push(intersectionPoint)
 
-  // 결과 설명
-  resultsDiv.innerHTML = `
-    <div class="result-item">
-      <strong>대각선 교점:</strong> (${Math.round(intersection.x)}, ${Math.round(intersection.y)})
-    </div>
-    <div class="result-item">
-      <strong>대각선 이등분:</strong> ${bisects ? '✓ 두 대각선이 서로 다른 것을 이등분합니다.' : '✗ 두 대각선이 서로 다른 것을 이등분하지 않습니다.'}
-    </div>
-  `
+  // 교점 라벨 "O" 추가
+  const intersectionLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+  intersectionLabel.setAttribute('x', String(intersection.x + 10))
+  intersectionLabel.setAttribute('y', String(intersection.y - 10))
+  intersectionLabel.classList.add('point-label')
+  intersectionLabel.textContent = 'O'
+  svg.appendChild(intersectionLabel)
+  activityState.diagonals.push(intersectionLabel)
+
+  // 각 꼭짓점에서 교점까지의 거리 계산
+  const distances = []
+  const labels = ['A', 'B', 'C', 'D']
+  for (let i = 0; i < 4; i++) {
+    const dist = Math.hypot(intersection.x - vertices[i].x, intersection.y - vertices[i].y)
+    distances.push(Math.round(dist))
+  }
+
+  if (showJudgment) {
+    // 각 대각선의 중점 계산
+    const mid1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+    const mid2 = { x: (p3.x + p4.x) / 2, y: (p3.y + p4.y) / 2 }
+
+    // 교점과 중점의 거리
+    const dist1 = Math.hypot(intersection.x - mid1.x, intersection.y - mid1.y)
+    const dist2 = Math.hypot(intersection.x - mid2.x, intersection.y - mid2.y)
+
+    const bisects = dist1 < 2 && dist2 < 2 // 2픽셀 오차 허용
+
+    // 결과 설명
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>대각선 교점:</strong> (${Math.round(intersection.x)}, ${Math.round(intersection.y)})
+      </div>
+      <div class="result-item">
+        <strong>대각선 이등분:</strong> ${bisects ? '✓ 두 대각선이 서로 다른 것을 이등분합니다.' : '✗ 두 대각선이 서로 다른 것을 이등분하지 않습니다.'}
+      </div>
+    `
+  } else {
+    // 결과 설명 (값만 제시)
+    resultsDiv.innerHTML = `
+      <div class="result-item">
+        <strong>두 대각선의 교점:</strong> O
+      </div>
+      <div class="result-item">
+        <strong>점 O에서 각 꼭짓점까지의 거리:</strong>
+      </div>
+      <div class="result-item">
+        OA = ${distances[0]}, OB = ${distances[1]}, OC = ${distances[2]}, OD = ${distances[3]}
+      </div>
+    `
+  }
 }
