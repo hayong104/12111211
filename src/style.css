@@ -324,17 +324,17 @@ body {
 }
 
 .miniature-window-content .grid-container {
-  width: 100%;
-  max-width: 100%;
-  aspect-ratio: 1 / 1;
-  transform: scale(0.6);
-  transform-origin: center center;
-  padding: 0;
-  margin: 0;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-}
+    width: 100%;
+    height: 100%; /* 추가: 부모의 높이를 꽉 채우도록 설정 */
+    max-width: 100%;
+    transform: none; /* 핵심 수정: 축소 효과 제거 */
+    transform-origin: center center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
 
 .fixed-activity-window {
   position: fixed;

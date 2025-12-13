@@ -1720,14 +1720,16 @@ function setupJudgmentReasonSection() {
         const body = document.body
         if (!body) return
 
+        // 폭죽이 터지는 위치 (화면 위쪽 중앙)
+        const startX = window.innerWidth / 2
+        const startY = 100 // 화면 위쪽에서 시작
+
         for (let i = 0; i < confettiCount; i++) {
           const confetti = document.createElement('div')
           confetti.style.position = 'fixed'
           confetti.style.width = '10px'
           confetti.style.height = '10px'
           confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
-          confetti.style.left = Math.random() * 100 + '%'
-          confetti.style.top = '-10px'
           confetti.style.borderRadius = '50%'
           confetti.style.pointerEvents = 'none'
           confetti.style.zIndex = '10000'
@@ -1735,18 +1737,19 @@ function setupJudgmentReasonSection() {
           
           body.appendChild(confetti)
           
+          // 위에서 아래로 퍼지는 각도 (0도는 오른쪽, 90도는 아래쪽)
           const angle = Math.random() * 360
           const velocity = 50 + Math.random() * 50
           const x = Math.cos(angle * Math.PI / 180) * velocity
-          const y = Math.sin(angle * Math.PI / 180) * velocity + 100
+          const y = Math.sin(angle * Math.PI / 180) * velocity // 아래로 떨어지도록
           
-          let posX = window.innerWidth / 2
-          let posY = window.innerHeight / 2
+          let posX = startX
+          let posY = startY
           let rotation = 0
           
           const animate = () => {
             posX += x * 0.1
-            posY += y * 0.1 + 2
+            posY += y * 0.1 + 2 // 중력 효과
             rotation += 10
             confetti.style.left = posX + 'px'
             confetti.style.top = posY + 'px'
