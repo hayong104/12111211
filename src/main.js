@@ -198,10 +198,10 @@ function renderActivity(conditionId) {
           <button id="chat-check" type="button" class="control-button chat-check" disabled>
             조건에 맞는지 확인하기
           </button>
-          <button id="condition-complete-btn" type="button" class="control-button condition-complete-btn" style="display: none; margin-top: 8px;" disabled>
+          <div id="condition-result" class="condition-result"></div>
+          <button id="condition-complete-btn" type="button" class="control-button condition-complete-btn" style="display: none; margin-top: 12px;" disabled>
             조건 확인 완료
           </button>
-          <div id="condition-result" class="condition-result"></div>
         </div>
         
         <div class="chat-panel" id="chat-panel" style="display: none; margin-top: 20px;">
