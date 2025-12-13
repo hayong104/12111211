@@ -191,16 +191,6 @@ function renderActivity(conditionId) {
       </section>
 
       <section class="chat-section" style="display: none;">
-        <div class="parallelogram-analysis" id="parallelogram-analysis" style="display: none;">
-          <h2 class="section-title">평행사변형이 되는 이유 확인</h2>
-          <div class="analysis-controls">
-            <button type="button" id="show-lengths-btn" class="control-button">각 변의 길이 보기</button>
-            <button type="button" id="show-angles-btn" class="control-button">네 각의 크기 보기</button>
-            <button type="button" id="show-diagonals-btn" class="control-button">대각선 그리고 이등분 확인</button>
-          </div>
-          <div id="analysis-results" class="analysis-results"></div>
-        </div>
-        
         <div class="chat-panel">
           <div class="chat-header">
             <div class="chat-title">피드백 챗봇</div>
@@ -213,19 +203,6 @@ function renderActivity(conditionId) {
           <button id="condition-complete-btn" type="button" class="control-button condition-complete-btn" style="display: none; margin-top: 8px;" disabled>
             조건 확인 완료
           </button>
-          <div id="parallelogram-judgment" class="parallelogram-judgment" style="display: none; margin-top: 16px;">
-            <div class="judgment-question">만든 사각형이 평행사변형인가요?</div>
-            <div class="judgment-input-group">
-              <input
-                id="parallelogram-input"
-                class="judgment-input"
-                type="text"
-                placeholder="평행사변형 또는 평행사변형이 아님"
-                autocomplete="off"
-              />
-              <button id="judgment-submit-btn" type="button" class="control-button">확인</button>
-            </div>
-          </div>
           <div id="chat-log" class="chat-log"></div>
           <form id="chat-form" class="chat-form">
             <input
@@ -240,6 +217,30 @@ function renderActivity(conditionId) {
             />
             <button id="chat-send" type="submit" class="control-button chat-send" disabled>질문 보내기</button>
           </form>
+        </div>
+        
+        <div id="parallelogram-judgment" class="parallelogram-judgment" style="display: none; margin-top: 20px;">
+          <div class="judgment-question">만든 사각형이 평행사변형인가요?</div>
+          <div class="judgment-input-group">
+            <input
+              id="parallelogram-input"
+              class="judgment-input"
+              type="text"
+              placeholder="평행사변형 또는 평행사변형이 아님"
+              autocomplete="off"
+            />
+            <button id="judgment-submit-btn" type="button" class="control-button">확인</button>
+          </div>
+        </div>
+        
+        <div class="parallelogram-analysis" id="parallelogram-analysis" style="display: none; margin-top: 20px;">
+          <h2 class="section-title">평행사변형이 되는 이유 확인</h2>
+          <div class="analysis-controls">
+            <button type="button" id="show-lengths-btn" class="control-button">각 변의 길이 보기</button>
+            <button type="button" id="show-angles-btn" class="control-button">네 각의 크기 보기</button>
+            <button type="button" id="show-diagonals-btn" class="control-button">대각선 그리고 이등분 확인</button>
+          </div>
+          <div id="analysis-results" class="analysis-results"></div>
         </div>
       </section>
     </main>
@@ -653,6 +654,36 @@ function handleUndo() {
         }
       }
     }
+    // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
+    if (activityState.quadShape && activityState.vertices.length !== 4) {
+      activityState.quadShape.remove()
+      activityState.quadShape = null
+      activityState.orderedVertices = null
+      // 챗봇 섹션 숨기기
+      const chatSection = document.querySelector('.chat-section')
+      if (chatSection) {
+        chatSection.style.display = 'none'
+      }
+      const chatCheckBtn = document.getElementById('chat-check')
+      if (chatCheckBtn) {
+        chatCheckBtn.disabled = true
+      }
+      // 분석 결과 제거
+      activityState.lengthLabels.forEach(label => label.remove())
+      activityState.lengthLabels = []
+      activityState.angleLabels.forEach(label => label.remove())
+      activityState.angleLabels = []
+      activityState.diagonals.forEach(diag => diag.remove())
+      activityState.diagonals = []
+      const resultsDiv = document.getElementById('analysis-results')
+      if (resultsDiv) {
+        resultsDiv.innerHTML = ''
+      }
+      const analysisSection = document.getElementById('parallelogram-analysis')
+      if (analysisSection) {
+        analysisSection.style.display = 'none'
+      }
+    }
     // 버튼 상태 업데이트
     const makeQuadButton = document.getElementById('make-quad-button')
     if (makeQuadButton) {
@@ -670,6 +701,36 @@ function handleUndo() {
       const index = activityState.vertices.indexOf(vertex)
       if (index > -1) {
         activityState.vertices.splice(index, 1)
+      }
+      // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
+      if (activityState.quadShape && activityState.vertices.length !== 4) {
+        activityState.quadShape.remove()
+        activityState.quadShape = null
+        activityState.orderedVertices = null
+        // 챗봇 섹션 숨기기
+        const chatSection = document.querySelector('.chat-section')
+        if (chatSection) {
+          chatSection.style.display = 'none'
+        }
+        const chatCheckBtn = document.getElementById('chat-check')
+        if (chatCheckBtn) {
+          chatCheckBtn.disabled = true
+        }
+        // 분석 결과 제거
+        activityState.lengthLabels.forEach(label => label.remove())
+        activityState.lengthLabels = []
+        activityState.angleLabels.forEach(label => label.remove())
+        activityState.angleLabels = []
+        activityState.diagonals.forEach(diag => diag.remove())
+        activityState.diagonals = []
+        const resultsDiv = document.getElementById('analysis-results')
+        if (resultsDiv) {
+          resultsDiv.innerHTML = ''
+        }
+        const analysisSection = document.getElementById('parallelogram-analysis')
+        if (analysisSection) {
+          analysisSection.style.display = 'none'
+        }
       }
       // 버튼 상태 업데이트
       const makeQuadButton = document.getElementById('make-quad-button')
@@ -792,7 +853,7 @@ function setupChatUI() {
 
     activityState.isSending = true
     checkBtn.disabled = true
-    status.textContent = '조건을 확인하는 중입니다...'
+    status.textContent = '피드백을 작성하는 중입니다...'
     try {
       const context = summarizeCurrentWork()
       const autoQuestion = '내가 만든 도형이 선택한 조건을 만족하는지 확인해줘.'
@@ -924,6 +985,52 @@ function segmentLength(seg) {
 
 // 두 선분이 대변 관계인지 확인 (마주보는 변)
 function areOppositeSides(seg1, seg2, allSegments) {
+  // 사각형이 만들어져 있고 orderedVertices가 있으면 정확한 대변 판단 사용
+  if (activityState.orderedVertices && activityState.orderedVertices.length === 4) {
+    const tolerance = 2
+    const vertices = activityState.orderedVertices
+    
+    // 각 선분이 어떤 변에 해당하는지 찾기
+    let seg1Edge = -1
+    let seg2Edge = -1
+    
+    for (let i = 0; i < 4; i++) {
+      const v1 = vertices[i]
+      const v2 = vertices[(i + 1) % 4]
+      
+      // seg1이 이 변과 일치하는지 확인
+      const seg1Matches = (
+        (Math.hypot(seg1.x1 - v1.x, seg1.y1 - v1.y) < tolerance && 
+         Math.hypot(seg1.x2 - v2.x, seg1.y2 - v2.y) < tolerance) ||
+        (Math.hypot(seg1.x1 - v2.x, seg1.y1 - v2.y) < tolerance && 
+         Math.hypot(seg1.x2 - v1.x, seg1.y2 - v1.y) < tolerance)
+      )
+      
+      if (seg1Matches && seg1Edge === -1) {
+        seg1Edge = i
+      }
+      
+      // seg2가 이 변과 일치하는지 확인
+      const seg2Matches = (
+        (Math.hypot(seg2.x1 - v1.x, seg2.y1 - v1.y) < tolerance && 
+         Math.hypot(seg2.x2 - v2.x, seg2.y2 - v2.y) < tolerance) ||
+        (Math.hypot(seg2.x1 - v2.x, seg2.y1 - v2.y) < tolerance && 
+         Math.hypot(seg2.x2 - v1.x, seg2.y2 - v1.y) < tolerance)
+      )
+      
+      if (seg2Matches && seg2Edge === -1) {
+        seg2Edge = i
+      }
+    }
+    
+    // 두 선분이 모두 사각형의 변으로 인식되었고, 대변 관계인지 확인
+    if (seg1Edge !== -1 && seg2Edge !== -1) {
+      // 대변은 인덱스 차이가 2인 경우 (0-2, 1-3)
+      return Math.abs(seg1Edge - seg2Edge) === 2
+    }
+  }
+  
+  // 사각형이 없거나 정확히 매칭되지 않은 경우 기존 로직 사용
   // 두 선분의 끝점들
   const seg1P1 = { x: seg1.x1, y: seg1.y1 }
   const seg1P2 = { x: seg1.x2, y: seg1.y2 }
