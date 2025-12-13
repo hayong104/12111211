@@ -266,6 +266,51 @@ body {
   border-color: #f59e0b;
 }
 
+.miniature-activity-window {
+  position: fixed;
+  width: 240px;
+  max-height: 300px;
+  background: #fffef9;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  box-shadow: 0 4px 6px rgba(251, 191, 36, 0.12);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.miniature-window-header {
+  padding: 10px 14px;
+  background: #fef3c7;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.miniature-window-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.miniature-window-content {
+  flex: 1;
+  overflow: hidden;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.miniature-window-content .grid-container {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  transform: scale(0.6);
+  transform-origin: center center;
+}
+
 .fixed-activity-window {
   position: fixed;
   width: 280px;

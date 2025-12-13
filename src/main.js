@@ -136,6 +136,12 @@ function renderActivity(conditionId) {
   activityState.isSending = false
   activityState.chatUnlocked = false
   activityState.currentCondition = conditionId
+  
+  // 기존 미니어처 창 제거
+  const existingMiniature = document.getElementById('miniature-activity-window')
+  if (existingMiniature) {
+    existingMiniature.remove()
+  }
 
   app.innerHTML = `
     <main class="page activity-page">
@@ -285,7 +291,9 @@ function setupActivityEvents() {
   const svg = createGridSvg()
   gridContainer.appendChild(svg)
   
-
+  // 오른쪽 미니어처 창 생성
+  createMiniatureWindow(gridContainer)
+  
   // 평행선 자 드래그용 상태
   let draggingRuler = null
   let lastMousePos = null
@@ -483,6 +491,96 @@ function createGridSvg() {
   }
 
   return svg
+}
+
+// 오른쪽 미니어처 창 생성
+function createMiniatureWindow(gridContainer) {
+  // 기존 미니어처 창이 있으면 제거
+  const existingWindow = document.getElementById('miniature-activity-window')
+  if (existingWindow) {
+    existingWindow.remove()
+  }
+  
+  // 미니어처 창 생성
+  const miniatureWindow = document.createElement('div')
+  miniatureWindow.id = 'miniature-activity-window'
+  miniatureWindow.className = 'miniature-activity-window'
+  miniatureWindow.innerHTML = `
+    <div class="miniature-window-header">
+      <h3>활동 사각형</h3>
+    </div>
+    <div class="miniature-window-content"></div>
+  `
+  document.body.appendChild(miniatureWindow)
+  
+  // 미니어처 내용 초기화
+  const miniatureContent = miniatureWindow.querySelector('.miniature-window-content')
+  updateMiniatureContent(gridContainer, miniatureContent)
+  
+  // 스크롤 이벤트로 위치 업데이트 (스크롤 위치에 따라 같이 이동)
+  let baseScrollY = window.scrollY
+  const updateMiniaturePosition = () => {
+    if (miniatureWindow.style.display === 'none') return
+    const scrollY = window.scrollY
+    const deltaY = scrollY - baseScrollY
+    baseScrollY = scrollY
+    
+    const currentTop = parseFloat(miniatureWindow.style.top) || 80
+    const maxTop = window.innerHeight - miniatureWindow.offsetHeight - 20
+    const minTop = 20
+    const newTop = Math.max(minTop, Math.min(maxTop, currentTop + deltaY))
+    miniatureWindow.style.top = `${newTop}px`
+    miniatureWindow.style.right = '20px'
+  }
+  
+  window.addEventListener('scroll', updateMiniaturePosition)
+  
+  // 초기 위치 설정
+  updateMiniaturePosition()
+  
+  // 그리기 활동이 업데이트될 때마다 미니어처도 업데이트
+  const observer = new MutationObserver(() => {
+    updateMiniatureContent(gridContainer, miniatureContent)
+  })
+  
+  observer.observe(gridContainer, { childList: true, subtree: true })
+  
+  // 주기적으로 미니어처 업데이트 (SVG 변경 감지)
+  const updateInterval = setInterval(() => {
+    if (!document.getElementById('miniature-activity-window')) {
+      clearInterval(updateInterval)
+      return
+    }
+    updateMiniatureContent(gridContainer, miniatureContent)
+  }, 300)
+}
+
+// 미니어처 내용 업데이트
+function updateMiniatureContent(gridContainer, miniatureContent) {
+  if (!gridContainer || !miniatureContent) return
+  
+  const existingClone = miniatureContent.querySelector('.grid-container')
+  if (existingClone) {
+    existingClone.remove()
+  }
+  
+  const gridClone = gridContainer.cloneNode(true)
+  const svg = gridClone.querySelector('svg')
+  if (svg) {
+    const originalSvg = gridContainer.querySelector('svg')
+    if (originalSvg) {
+      const viewBox = originalSvg.getAttribute('viewBox') || '0 0 500 500'
+      svg.setAttribute('viewBox', viewBox)
+      svg.setAttribute('width', '100%')
+      svg.setAttribute('height', '100%')
+    }
+  }
+  // 인라인 스타일 제거 (CSS에서 처리)
+  gridClone.style.transform = ''
+  gridClone.style.transformOrigin = ''
+  gridClone.style.width = ''
+  gridClone.style.height = ''
+  miniatureContent.appendChild(gridClone)
 }
 
 // 점 클릭 → 점 선택 / 선분 그리기
@@ -839,6 +937,12 @@ function handleReset() {
   const fixedWindow = document.getElementById('fixed-activity-window')
   if (fixedWindow) {
     fixedWindow.style.display = 'none'
+  }
+  
+  // 미니어처 창 숨기기
+  const miniatureWindow = document.getElementById('miniature-activity-window')
+  if (miniatureWindow) {
+    miniatureWindow.style.display = 'none'
   }
 }
 
