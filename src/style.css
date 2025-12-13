@@ -298,24 +298,15 @@ body {
   color: #111827;
 }
 
-.judgment-input-group {
+.judgment-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.judgment-input {
+.judgment-btn {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: #ffffff;
-}
-
-.judgment-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  min-width: 100px;
 }
 
 .judgment-reason-section {

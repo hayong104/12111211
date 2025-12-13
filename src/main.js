@@ -235,15 +235,10 @@ function renderActivity(conditionId) {
         
         <div id="parallelogram-judgment" class="parallelogram-judgment" style="display: none; margin-top: 20px;">
           <div class="judgment-question">만든 사각형이 평행사변형인가요?</div>
-          <div class="judgment-input-group">
-            <input
-              id="parallelogram-input"
-              class="judgment-input"
-              type="text"
-              placeholder="평행사변형 또는 평행사변형이 아님"
-              autocomplete="off"
-            />
-            <button id="judgment-submit-btn" type="button" class="control-button">확인</button>
+          <div class="judgment-buttons">
+            <button id="judgment-yes-btn" type="button" class="control-button judgment-btn">맞아요</button>
+            <button id="judgment-no-btn" type="button" class="control-button judgment-btn">아니에요</button>
+            <button id="judgment-unknown-btn" type="button" class="control-button judgment-btn">모르겠어요</button>
           </div>
         </div>
         
@@ -882,11 +877,22 @@ function setupChatUI() {
       const reply = await callChatGPT(apiKey, autoQuestion, context)
       updateTypingMessage(typingMessage, reply)
       setChatEnabled(true)
-      // 조건 확인 완료 버튼 표시
+      
+      // 조건이 모두 충족되었는지 확인 (답변에 "모든 조건을 만족합니다" 또는 "모든 조건"이 포함되어 있는지 확인)
+      const allConditionsMet = reply.includes('모든 조건을 만족') || reply.includes('모든 조건') || 
+                               (!reply.includes('부족') && !reply.includes('만족하지') && !reply.includes('아니') && 
+                                !reply.includes('평행하지') && !reply.includes('같지'))
+      
+      // 조건 확인 완료 버튼은 조건을 모두 충족했을 때만 표시
       const conditionCompleteBtn = document.getElementById('condition-complete-btn')
       if (conditionCompleteBtn) {
-        conditionCompleteBtn.style.display = 'block'
-        conditionCompleteBtn.disabled = false
+        if (allConditionsMet) {
+          conditionCompleteBtn.style.display = 'block'
+          conditionCompleteBtn.disabled = false
+        } else {
+          conditionCompleteBtn.style.display = 'none'
+          conditionCompleteBtn.disabled = true
+        }
       }
     } catch (err) {
       if (typingMessage) {
@@ -956,42 +962,32 @@ function setupChatUI() {
     })
   }
 
-  // 평행사변형 판단 제출
-  if (judgmentSubmitBtn && judgmentInput) {
-    judgmentSubmitBtn.addEventListener('click', () => {
-      const answer = judgmentInput.value.trim().toLowerCase()
-      // 평행사변형이라고 판단하는 경우: "평행사변형"이 포함되고, 부정 표현이 없거나 약한 경우
-      const hasParallelogram = answer.includes('평행사변형')
-      const hasNegative = answer.includes('아님') || answer.includes('아니') || answer.includes('아닙니다') || answer.includes('아닙') || answer.includes('아니다')
-      
-      // "평행사변형"이 포함되어 있고, 명확한 부정 표현이 없으면 평행사변형으로 판단
-      const isParallelogram = hasParallelogram && !hasNegative
-      
-      if (isParallelogram) {
-        // 평행사변형이라고 답한 경우 - 평행사변형 판단 이유 작성 파트 표시
-        const analysisSection = document.getElementById('parallelogram-analysis')
-        if (analysisSection) {
-          analysisSection.style.display = 'block'
-          setupJudgmentReasonSection()
-        }
-        parallelogramJudgment.style.display = 'none'
-      } else if (hasParallelogram && hasNegative) {
-        // 평행사변형이 아니라고 명확히 답한 경우
-        alert('평행사변형이 아니라고 판단하셨습니다. 다시 확인해보세요.')
-      } else if (!hasParallelogram) {
-        // 평행사변형이라는 단어가 없는 경우
-        alert('"평행사변형" 또는 "평행사변형이 아님"으로 답해주세요.')
-      } else {
-        // 그 외의 경우 (혼란스러운 입력)
-        alert('답변을 다시 확인해주세요. "평행사변형" 또는 "평행사변형이 아님"으로 답해주세요.')
-      }
-    })
+  // 평행사변형 판단 버튼 이벤트
+  const judgmentYesBtn = document.getElementById('judgment-yes-btn')
+  const judgmentNoBtn = document.getElementById('judgment-no-btn')
+  const judgmentUnknownBtn = document.getElementById('judgment-unknown-btn')
 
-    // Enter 키로도 제출 가능
-    judgmentInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        judgmentSubmitBtn.click()
+  if (judgmentYesBtn) {
+    judgmentYesBtn.addEventListener('click', () => {
+      // 평행사변형이라고 답한 경우 - 평행사변형 판단 이유 작성 파트 표시
+      const analysisSection = document.getElementById('parallelogram-analysis')
+      if (analysisSection) {
+        analysisSection.style.display = 'block'
+        setupJudgmentReasonSection()
       }
+      parallelogramJudgment.style.display = 'none'
+    })
+  }
+
+  if (judgmentNoBtn) {
+    judgmentNoBtn.addEventListener('click', () => {
+      alert('평행사변형이 되는 조건을 생각해보세요.')
+    })
+  }
+
+  if (judgmentUnknownBtn) {
+    judgmentUnknownBtn.addEventListener('click', () => {
+      alert('평행사변형이 되는 조건을 생각해보세요.')
     })
   }
 }
@@ -1218,7 +1214,7 @@ async function callChatGPT(apiKey, userMessage, context) {
     {
       role: 'system',
       content:
-        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘. 중요한 것은 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공하는 것이다.',
+        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n중요: 만족하지 않는 조건에 대한 피드백만 제공해줘. 만족하는 조건에 대해서는 언급하지 마. 만약 모든 조건을 만족한다면 "모든 조건을 만족합니다"라고만 간단히 말해줘.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 만족하지 않는 조건만 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘.',
     },
     {
       role: 'user',
@@ -1226,7 +1222,7 @@ async function callChatGPT(apiKey, userMessage, context) {
         context,
         null,
         2
-      )}\n\n위 정보에서 segmentPairs 배열을 참고하여, 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 각 선분 쌍에 대해 다음 세 가지를 확인하되, 질문의 의도에 맞게 답변해줘:\n1. areOppositeSides: 두 선분이 대변 관계인지\n2. areParallel: 두 선분이 평행한지\n3. sameLength: 두 선분의 길이가 같은지\n\n각 선분 쌍에 대해 이 세 가지 기준을 명확히 구분해서 설명해줘. 선분들에 대한 피드백만 해주고, 사각형이나 평행사변형에 대한 언급은 하지 마.`,
+      )}\n\n위 정보에서 segmentPairs 배열을 참고하여, 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 각 선분 쌍에 대해 다음 세 가지를 확인하되, 질문의 의도에 맞게 답변해줘:\n1. areOppositeSides: 두 선분이 대변 관계인지\n2. areParallel: 두 선분이 평행한지\n3. sameLength: 두 선분의 길이가 같은지\n\n중요: 만족하지 않는 조건에 대한 피드백만 제공해줘. 만족하는 조건에 대해서는 언급하지 마. 만약 모든 조건을 만족한다면 "모든 조건을 만족합니다"라고만 간단히 말해줘. 각 선분 쌍에 대해 만족하지 않는 조건만 설명해줘. 선분들에 대한 피드백만 해주고, 사각형이나 평행사변형에 대한 언급은 하지 마.`,
     },
   ]
 
