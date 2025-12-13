@@ -956,7 +956,12 @@ function setupChatUI() {
   if (judgmentSubmitBtn && judgmentInput) {
     judgmentSubmitBtn.addEventListener('click', () => {
       const answer = judgmentInput.value.trim().toLowerCase()
-      const isParallelogram = answer.includes('평행사변형') && !answer.includes('아님') && !answer.includes('아니')
+      // 평행사변형이라고 판단하는 경우: "평행사변형"이 포함되고, 부정 표현이 없거나 약한 경우
+      const hasParallelogram = answer.includes('평행사변형')
+      const hasNegative = answer.includes('아님') || answer.includes('아니') || answer.includes('아닙니다') || answer.includes('아닙') || answer.includes('아니다')
+      
+      // "평행사변형"이 포함되어 있고, 명확한 부정 표현이 없으면 평행사변형으로 판단
+      const isParallelogram = hasParallelogram && !hasNegative
       
       if (isParallelogram) {
         // 평행사변형이라고 답한 경우 - 평행사변형 판단 파트 표시
@@ -965,9 +970,15 @@ function setupChatUI() {
           analysisSection.style.display = 'block'
         }
         parallelogramJudgment.style.display = 'none'
-      } else {
-        // 평행사변형이 아니라고 답한 경우
+      } else if (hasParallelogram && hasNegative) {
+        // 평행사변형이 아니라고 명확히 답한 경우
         alert('평행사변형이 아니라고 판단하셨습니다. 다시 확인해보세요.')
+      } else if (!hasParallelogram) {
+        // 평행사변형이라는 단어가 없는 경우
+        alert('"평행사변형" 또는 "평행사변형이 아님"으로 답해주세요.')
+      } else {
+        // 그 외의 경우 (혼란스러운 입력)
+        alert('답변을 다시 확인해주세요. "평행사변형" 또는 "평행사변형이 아님"으로 답해주세요.')
       }
     })
 
@@ -1202,7 +1213,7 @@ async function callChatGPT(apiKey, userMessage, context) {
     {
       role: 'system',
       content:
-        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생들이 만든 선분들이 "선택한 조건"을 만족하는지 쉬운 말로 알려줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘.',
+        '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생들이 만든 선분들이 "선택한 조건"을 만족하는지 확인하고, 학생의 질문에 직접적으로 답변해줘. 단순히 조건에 맞는지만 말하지 말고, 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 이 세 가지를 명확히 구분해서 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘. 학생의 질문에 직접적으로 답변하는 것을 잊지 마.',
     },
     {
       role: 'user',
@@ -1380,7 +1391,7 @@ function showParallelSides(svg, vertices, resultsDiv) {
     parallelLine.setAttribute('x2', String(midX + perpX + dx / 2))
     parallelLine.setAttribute('y2', String(midY + perpY + dy / 2))
     parallelLine.classList.add('parallel-check-line')
-    parallelLine.style.stroke = '#ef4444'
+    parallelLine.style.stroke = '#16a34a'
     parallelLine.style.strokeWidth = '2'
     parallelLine.style.strokeDasharray = '6 4'
     parallelLine.style.cursor = 'grab'
