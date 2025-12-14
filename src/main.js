@@ -869,10 +869,16 @@ function handleMakeQuadrilateral(svg) {
 
   // 평행사변형 판단 이유 작성 섹션은 평행사변형이라고 판단했을 때 표시됨
   
-  // 미니어처 창이 있으면 계속 표시
+  // 미니어처 창이 있으면 표시하고 업데이트
   const miniWindow = document.getElementById('miniature-activity-window')
   if (miniWindow) {
     miniWindow.style.display = 'block'
+    // 미니어처 창 내용 명시적으로 업데이트
+    const gridContainer = document.getElementById('grid-container')
+    const miniatureContent = miniWindow.querySelector('.miniature-window-content')
+    if (gridContainer && miniatureContent) {
+      updateMiniatureContent(gridContainer, miniatureContent)
+    }
   }
 }
 
@@ -958,10 +964,15 @@ function handleReset() {
     fixedWindow.style.display = 'none'
   }
   
-  // 미니어처 창 숨기기
+  // 미니어처 창 숨기지 않고 내용만 업데이트 (빈 상태로)
   const miniatureWindow = document.getElementById('miniature-activity-window')
   if (miniatureWindow) {
-    miniatureWindow.style.display = 'none'
+    // 미니어처 창 내용 명시적으로 업데이트
+    const gridContainer = document.getElementById('grid-container')
+    const miniatureContent = miniatureWindow.querySelector('.miniature-window-content')
+    if (gridContainer && miniatureContent) {
+      updateMiniatureContent(gridContainer, miniatureContent)
+    }
   }
 }
 
@@ -1516,60 +1527,24 @@ function setupQuadInfoSection() {
   const infoResultsDiv = document.getElementById('info-results')
   if (!infoResultsDiv) return
   
-  // 그리기 활동 부분을 오른쪽 고정 창으로 표시
-  let fixedWindow = document.getElementById('fixed-activity-window')
-  if (!fixedWindow) {
-    const gridContainer = document.getElementById('grid-container')
-    if (gridContainer) {
-      // 고정 창 생성
-      fixedWindow = document.createElement('div')
-      fixedWindow.id = 'fixed-activity-window'
-      fixedWindow.className = 'fixed-activity-window'
-      fixedWindow.style.display = 'none'
-      fixedWindow.innerHTML = `
-        <div class="fixed-window-header">
-          <h3>그리기 활동</h3>
-        </div>
-        <div class="fixed-window-content"></div>
-      `
-      document.body.appendChild(fixedWindow)
-      
-      // 그리기 활동 내용 복사
-      const fixedContent = fixedWindow.querySelector('.fixed-window-content')
-      const gridClone = gridContainer.cloneNode(true)
-      fixedContent.appendChild(gridClone)
-      
-      // 스크롤 이벤트로 위치 업데이트 (스크롤 위치에 따라 같이 이동)
-      let baseScrollY = window.scrollY
-      const updateFixedWindowPosition = () => {
-        if (fixedWindow.style.display === 'none') return
-        const scrollY = window.scrollY
-        const deltaY = scrollY - baseScrollY
-        baseScrollY = scrollY
-        
-        const currentTop = parseFloat(fixedWindow.style.top) || 80
-        const maxTop = window.innerHeight - fixedWindow.offsetHeight - 20
-        const minTop = 20
-        const newTop = Math.max(minTop, Math.min(maxTop, currentTop + deltaY))
-        fixedWindow.style.top = `${newTop}px`
-        fixedWindow.style.right = '20px'
-      }
-      
-      window.addEventListener('scroll', updateFixedWindowPosition)
-      
-      // 초기 위치 설정
-      fixedWindow.style.top = '80px'
-      fixedWindow.style.right = '20px'
-    }
-  } else {
-    // 이미 존재하면 표시
-    fixedWindow.style.display = 'block'
+  // 고정 창은 표시하지 않음 (미니어처 창만 사용)
+  const fixedWindow = document.getElementById('fixed-activity-window')
+  if (fixedWindow) {
+    fixedWindow.style.display = 'none'
   }
   
-  // 미니어처 창은 계속 표시 (고정 창과 함께 표시)
+  const gridContainer = document.getElementById('grid-container')
+  if (!gridContainer) return
+  
+  // 미니어처 창은 계속 표시
   const miniWindow2 = document.getElementById('miniature-activity-window')
   if (miniWindow2) {
     miniWindow2.style.display = 'block'
+    // 미니어처 창도 현재 상태로 업데이트
+    const miniatureContent = miniWindow2.querySelector('.miniature-window-content')
+    if (gridContainer && miniatureContent) {
+      updateMiniatureContent(gridContainer, miniatureContent)
+    }
   }
   
   const infoShowLengthsBtn = document.getElementById('info-show-lengths-btn')
@@ -1586,10 +1561,23 @@ function setupQuadInfoSection() {
     }
   }
 
+  // 미니어처 창 업데이트 함수
+  const updateMiniature = () => {
+    const gridContainer = document.getElementById('grid-container')
+    const miniWindow = document.getElementById('miniature-activity-window')
+    if (gridContainer && miniWindow) {
+      const miniatureContent = miniWindow.querySelector('.miniature-window-content')
+      if (miniatureContent) {
+        updateMiniatureContent(gridContainer, miniatureContent)
+      }
+    }
+  }
+
   if (infoShowLengthsBtn) {
     infoShowLengthsBtn.addEventListener('click', () => {
       showSideLengths(svg, vertices, infoResultsDiv, false)
       showNextButton()
+      updateMiniature()
     })
   }
 
@@ -1597,6 +1585,7 @@ function setupQuadInfoSection() {
     infoShowAnglesBtn.addEventListener('click', () => {
       showAngles(svg, vertices, infoResultsDiv, false)
       showNextButton()
+      updateMiniature()
     })
   }
 
@@ -1604,6 +1593,7 @@ function setupQuadInfoSection() {
     infoShowDiagonalsBtn.addEventListener('click', () => {
       showDiagonals(svg, vertices, infoResultsDiv, false)
       showNextButton()
+      updateMiniature()
     })
   }
 
@@ -1611,6 +1601,7 @@ function setupQuadInfoSection() {
     infoShowParallelBtn.addEventListener('click', () => {
       showParallelSides(svg, vertices, infoResultsDiv)
       showNextButton()
+      updateMiniature()
     })
   }
 
@@ -2036,21 +2027,56 @@ function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
     angles.push(Math.round(angle))
 
     // 각도의 시작 방향과 끝 방향 계산 (라디안)
-    // v2를 중심으로 v1 방향과 v3 방향
-    const dir1 = { x: v1.x - v2.x, y: v1.y - v2.y } // v2 -> v1
-    const dir2 = { x: v3.x - v2.x, y: v3.y - v2.y } // v2 -> v3
+    // v2를 중심으로 v2에서 v1로 가는 방향과 v2에서 v3로 가는 방향
+    // 각도는 v1-v2-v3의 내각이므로, v2에서 v1로 가는 벡터와 v2에서 v3로 가는 벡터 사이의 각도
+    const dir1 = { x: v1.x - v2.x, y: v1.y - v2.y } // v2 -> v1 (첫 번째 변의 방향)
+    const dir2 = { x: v3.x - v2.x, y: v3.y - v2.y } // v2 -> v3 (두 번째 변의 방향)
     const angle1 = Math.atan2(dir1.y, dir1.x)
     const angle2 = Math.atan2(dir2.y, dir2.x)
     
     // 호의 시작점과 끝점 (v2를 중심으로 한 원의 일부)
+    // v2에서 각 변 방향으로 arcRadius만큼 떨어진 점들
     const startX = v2.x + Math.cos(angle1) * arcRadius
     const startY = v2.y + Math.sin(angle1) * arcRadius
     const endX = v2.x + Math.cos(angle2) * arcRadius
     const endY = v2.y + Math.sin(angle2) * arcRadius
     
     // SVG arc 경로 생성 (v2를 중심으로 한 원의 일부)
-    const largeArcFlag = angle > 180 ? 1 : 0
-    const arcPath = `M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} 1 ${endX} ${endY}`
+    // 각도 차이 계산: angle1에서 angle2로 가는 두 가지 경로 중 작은 쪽 선택
+    let angleDiff1 = angle2 - angle1
+    if (angleDiff1 < 0) angleDiff1 += 2 * Math.PI
+    
+    let angleDiff2 = angle1 - angle2
+    if (angleDiff2 < 0) angleDiff2 += 2 * Math.PI
+    
+    // 작은 각도 쪽의 호를 그리기 위해 더 작은 각도 차이 선택
+    let useReverse = false
+    let finalAngleDiff = angleDiff1
+    if (angleDiff2 < angleDiff1) {
+      useReverse = true
+      finalAngleDiff = angleDiff2
+    }
+    
+    // largeArcFlag: 각도 차이가 180도보다 크면 큰 호(1), 작으면 작은 호(0)
+    const largeArcFlag = finalAngleDiff > Math.PI ? 1 : 0
+    
+    // sweep flag: 작은 각도 쪽으로 가도록 설정
+    // useReverse가 true면 시작점과 끝점을 바꾸고 시계 방향(1), 아니면 반시계 방향(0)
+    let finalStartX, finalStartY, finalEndX, finalEndY
+    if (useReverse) {
+      finalStartX = endX
+      finalStartY = endY
+      finalEndX = startX
+      finalEndY = startY
+    } else {
+      finalStartX = startX
+      finalStartY = startY
+      finalEndX = endX
+      finalEndY = endY
+    }
+    
+    const sweepFlag = useReverse ? 1 : 0
+    const arcPath = `M ${finalStartX} ${finalStartY} A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} ${sweepFlag} ${finalEndX} ${finalEndY}`
     
     // 호 그리기
     const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path')
