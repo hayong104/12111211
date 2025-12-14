@@ -138,6 +138,7 @@ const activityState = {
   currentCondition: null,
   lengthLabels: [], // 길이 라벨
   angleLabels: [], // 각도 라벨
+  angleArcs: [], // 각도 호
   diagonals: [], // 대각선
   eraserMode: false, // 지우개 모드
   conditionResult: null, // 조건 확인 결과 저장
@@ -567,9 +568,9 @@ function handlePointClick(point, svg) {
       // 정삼각형의 중심 좌표 가져오기 (원래 좌표 사용)
       const cx = Number(point.dataset.origX || point.getAttribute('cx') || 0)
       const cy = Number(point.dataset.origY || point.getAttribute('cy') || 0)
-      // 점 근처에 라벨 표시 (점 위가 아니라 오른쪽 위)
-      text.setAttribute('x', String(cx + 10))
-      text.setAttribute('y', String(cy - 10))
+      // 점 근처에 라벨 표시 (점과 아주 가깝게)
+      text.setAttribute('x', String(cx + 2))
+      text.setAttribute('y', String(cy - 2))
       text.classList.add('point-label')
       text.textContent = labelChar
       svg.appendChild(text)
@@ -910,6 +911,10 @@ function handleReset() {
   activityState.lengthLabels = []
   activityState.angleLabels.forEach(label => label.remove())
   activityState.angleLabels = []
+  if (activityState.angleArcs) {
+    activityState.angleArcs.forEach(arc => arc.remove())
+    activityState.angleArcs = []
+  }
   activityState.diagonals.forEach(diag => diag.remove())
   activityState.diagonals = []
 
@@ -1643,6 +1648,8 @@ function showParallelSides(svg, vertices, resultsDiv) {
     edgeLine.style.stroke = '#2563eb'
     edgeLine.style.strokeWidth = '1.2'
     edgeLine.style.opacity = '0.6'
+    edgeLine.style.pointerEvents = 'all'
+    edgeLine.style.fill = 'none'
     svg.appendChild(edgeLine)
     activityState.parallelRulers.push(edgeLine)
     
@@ -1660,25 +1667,47 @@ function showParallelSides(svg, vertices, resultsDiv) {
   let parallelLine = null
   
   const handleEdgeClick = (event) => {
-    const edgeLine = event.target.closest('.edge-selector')
-    if (!edgeLine) return
+    event.stopPropagation()
+    event.preventDefault()
+    
+    // event.target이 직접 edge-selector인지 확인
+    let edgeLine = event.target
+    if (!edgeLine.classList || !edgeLine.classList.contains('edge-selector')) {
+      // closest를 시도해보지만 SVG에서는 작동하지 않을 수 있음
+      edgeLine = event.target.closest('.edge-selector')
+    }
+    
+    if (!edgeLine || !edgeLine.classList || !edgeLine.classList.contains('edge-selector')) {
+      console.log('Edge selector not found', event.target)
+      return
+    }
     
     const edgeIndex = parseInt(edgeLine.dataset.edgeIndex)
+    if (isNaN(edgeIndex) || edgeIndex < 0 || edgeIndex >= edges.length) {
+      console.log('Invalid edge index', edgeIndex)
+      return
+    }
+    
     selectedEdge = edges[edgeIndex]
+    console.log('Edge clicked:', selectedEdge.label)
     
     // 기존 평행선 제거
-    if (parallelLine) {
+    if (parallelLine && parallelLine.parentNode) {
       parallelLine.remove()
+      const index = activityState.parallelRulers.indexOf(parallelLine)
+      if (index > -1) {
+        activityState.parallelRulers.splice(index, 1)
+      }
     }
     
     // 선택된 변 강조 (진한 주황색)
     edges.forEach(e => {
       if (e.index === edgeIndex) {
         e.line.style.stroke = '#ea580c'
-        e.line.style.strokeWidth = '1.5'
+        e.line.style.strokeWidth = '1'
       } else {
         e.line.style.stroke = '#2563eb'
-        e.line.style.strokeWidth = '1.2'
+        e.line.style.strokeWidth = '1'
       }
     })
     
@@ -1689,9 +1718,14 @@ function showParallelSides(svg, vertices, resultsDiv) {
     const dy = selectedEdge.v2.y - selectedEdge.v1.y
     const length = Math.hypot(dx, dy)
     
-    // 평행선의 방향 벡터
-    const perpX = -dy / length * 50 // 수직 방향으로 50픽셀 이동
-    const perpY = dx / length * 50
+    if (length === 0) {
+      console.log('Edge length is 0')
+      return
+    }
+    
+    // 평행선의 방향 벡터 (수직 방향으로 30픽셀 이동)
+    const perpX = -dy / length * 30
+    const perpY = dx / length * 30
     
     parallelLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
     parallelLine.setAttribute('x1', String(midX + perpX - dx / 2))
@@ -1700,23 +1734,44 @@ function showParallelSides(svg, vertices, resultsDiv) {
     parallelLine.setAttribute('y2', String(midY + perpY + dy / 2))
     parallelLine.classList.add('parallel-check-line')
     parallelLine.style.stroke = '#ea580c'
-    parallelLine.style.strokeWidth = '1'
-    parallelLine.style.strokeDasharray = '6 4'
+    parallelLine.style.strokeWidth = '0.8'
+    parallelLine.style.strokeDasharray = '2 2'
     parallelLine.style.cursor = 'grab'
+    parallelLine.style.pointerEvents = 'all'
+    parallelLine.style.fill = 'none'
+    
     svg.appendChild(parallelLine)
     activityState.parallelRulers.push(parallelLine)
+    
+    console.log('Parallel line created:', {
+      x1: parallelLine.getAttribute('x1'),
+      y1: parallelLine.getAttribute('y1'),
+      x2: parallelLine.getAttribute('x2'),
+      y2: parallelLine.getAttribute('y2')
+    })
     
     // 평행선 드래그 기능
     let isDragging = false
     let lastMousePos = null
     
     const startDrag = (e) => {
-      if (e.target === parallelLine) {
+      if (e.target === parallelLine || parallelLine.contains(e.target)) {
         isDragging = true
+        e.preventDefault()
         const rect = svg.getBoundingClientRect()
+        const svgPoint = svg.createSVGPoint()
+        svgPoint.x = e.clientX
+        svgPoint.y = e.clientY
+        const ctm = svg.getScreenCTM()
+        if (ctm) {
+          svgPoint.x -= ctm.e
+          svgPoint.y -= ctm.f
+          svgPoint.x /= ctm.a
+          svgPoint.y /= ctm.d
+        }
         lastMousePos = {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
+          x: svgPoint.x || (e.clientX - rect.left),
+          y: svgPoint.y || (e.clientY - rect.top)
         }
       }
     }
@@ -1725,21 +1780,35 @@ function showParallelSides(svg, vertices, resultsDiv) {
       if (!isDragging || !lastMousePos) return
       
       const rect = svg.getBoundingClientRect()
-      const currentX = e.clientX - rect.left
-      const currentY = e.clientY - rect.top
+      const svgPoint = svg.createSVGPoint()
+      svgPoint.x = e.clientX
+      svgPoint.y = e.clientY
+      const ctm = svg.getScreenCTM()
+      let currentX, currentY
+      if (ctm) {
+        svgPoint.x -= ctm.e
+        svgPoint.y -= ctm.f
+        svgPoint.x /= ctm.a
+        svgPoint.y /= ctm.d
+        currentX = svgPoint.x
+        currentY = svgPoint.y
+      } else {
+        currentX = e.clientX - rect.left
+        currentY = e.clientY - rect.top
+      }
       
-      const dx = currentX - lastMousePos.x
-      const dy = currentY - lastMousePos.y
+      const deltaX = currentX - lastMousePos.x
+      const deltaY = currentY - lastMousePos.y
       
       const x1 = parseFloat(parallelLine.getAttribute('x1'))
       const y1 = parseFloat(parallelLine.getAttribute('y1'))
       const x2 = parseFloat(parallelLine.getAttribute('x2'))
       const y2 = parseFloat(parallelLine.getAttribute('y2'))
       
-      parallelLine.setAttribute('x1', String(x1 + dx))
-      parallelLine.setAttribute('y1', String(y1 + dy))
-      parallelLine.setAttribute('x2', String(x2 + dx))
-      parallelLine.setAttribute('y2', String(y2 + dy))
+      parallelLine.setAttribute('x1', String(x1 + deltaX))
+      parallelLine.setAttribute('y1', String(y1 + deltaY))
+      parallelLine.setAttribute('x2', String(x2 + deltaX))
+      parallelLine.setAttribute('y2', String(y2 + deltaY))
       
       lastMousePos = { x: currentX, y: currentY }
     }
@@ -1750,9 +1819,8 @@ function showParallelSides(svg, vertices, resultsDiv) {
     }
     
     parallelLine.addEventListener('mousedown', startDrag)
-    svg.addEventListener('mousemove', drag)
-    svg.addEventListener('mouseup', stopDrag)
-    svg.addEventListener('mouseleave', stopDrag)
+    document.addEventListener('mousemove', drag)
+    document.addEventListener('mouseup', stopDrag)
     
     resultsDiv.innerHTML = `
       <div class="result-item">
@@ -1768,7 +1836,11 @@ function showParallelSides(svg, vertices, resultsDiv) {
   }
   
   edges.forEach(edge => {
-    edge.line.addEventListener('click', handleEdgeClick)
+    edge.line.addEventListener('click', handleEdgeClick, { capture: true })
+    edge.line.addEventListener('mousedown', (e) => {
+      e.stopPropagation()
+      handleEdgeClick(e)
+    }, { capture: true })
   })
   
   resultsDiv.innerHTML = `
@@ -1867,18 +1939,29 @@ function showSideLengths(svg, vertices, resultsDiv, showJudgment = true) {
     const length = Math.hypot(v2.x - v1.x, v2.y - v1.y)
     lengths.push(Math.round(length))
 
-    // 중점에 길이 표시
+    // 변의 중점 계산
     const midX = (v1.x + v2.x) / 2
     const midY = (v1.y + v2.y) / 2
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    text.setAttribute('x', String(midX))
-    text.setAttribute('y', String(midY))
-    text.setAttribute('text-anchor', 'middle')
-    text.setAttribute('dominant-baseline', 'middle')
-    text.classList.add('length-label')
-    text.textContent = String(lengths[i])
-    svg.appendChild(text)
-    activityState.lengthLabels.push(text)
+    
+    // 변에 수직인 방향으로 오프셋 계산 (변 근처에 표시)
+    const dx = v2.x - v1.x
+    const dy = v2.y - v1.y
+    const segLength = Math.hypot(dx, dy)
+    if (segLength > 0) {
+      // 수직 방향으로 8픽셀 이동
+      const perpX = -dy / segLength * 8
+      const perpY = dx / segLength * 8
+      
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      text.setAttribute('x', String(midX + perpX))
+      text.setAttribute('y', String(midY + perpY))
+      text.setAttribute('text-anchor', 'middle')
+      text.setAttribute('dominant-baseline', 'middle')
+      text.classList.add('length-label')
+      text.textContent = String(lengths[i])
+      svg.appendChild(text)
+      activityState.lengthLabels.push(text)
+    }
   }
 
   // 결과 설명
@@ -1903,11 +1986,20 @@ function showSideLengths(svg, vertices, resultsDiv, showJudgment = true) {
 
 // 네 각의 크기 표시
 function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
-  // 기존 각도 라벨 제거
-  activityState.angleLabels.forEach(label => label.remove())
+  // 기존 각도 라벨과 호 제거
+  activityState.angleLabels.forEach(label => {
+    if (label && label.remove) label.remove()
+  })
   activityState.angleLabels = []
+  if (activityState.angleArcs) {
+    activityState.angleArcs.forEach(arc => {
+      if (arc && arc.remove) arc.remove()
+    })
+  }
+  activityState.angleArcs = []
 
   const angles = []
+  const arcRadius = 10 // 호의 반지름
   for (let i = 0; i < 4; i++) {
     const v1 = vertices[i]
     const v2 = vertices[(i + 1) % 4]
@@ -1919,13 +2011,47 @@ function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
     const dot = vec1.x * vec2.x + vec1.y * vec2.y
     const mag1 = Math.hypot(vec1.x, vec1.y)
     const mag2 = Math.hypot(vec2.x, vec2.y)
-    const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI)
+    const angleRad = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))))
+    const angle = angleRad * (180 / Math.PI)
     angles.push(Math.round(angle))
 
-    // 각도 표시 (꼭짓점 근처)
+    // 각도의 시작 방향과 끝 방향 계산 (라디안)
+    // v2에서 v1로 가는 방향과 v2에서 v3로 가는 방향
+    const dir1 = { x: v1.x - v2.x, y: v1.y - v2.y } // v2 -> v1
+    const dir2 = { x: v3.x - v2.x, y: v3.y - v2.y } // v2 -> v3
+    const angle1 = Math.atan2(dir1.y, dir1.x)
+    const angle2 = Math.atan2(dir2.y, dir2.x)
+    
+    // 호의 시작점과 끝점
+    const startX = v2.x + Math.cos(angle1) * arcRadius
+    const startY = v2.y + Math.sin(angle1) * arcRadius
+    const endX = v2.x + Math.cos(angle2) * arcRadius
+    const endY = v2.y + Math.sin(angle2) * arcRadius
+    
+    // SVG arc 경로 생성
+    const largeArcFlag = angle > 180 ? 1 : 0
+    const arcPath = `M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} 1 ${endX} ${endY}`
+    
+    // 호 그리기
+    const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    arc.setAttribute('d', arcPath)
+    arc.setAttribute('fill', 'none')
+    arc.setAttribute('stroke', '#000000')
+    arc.setAttribute('stroke-width', '0.5')
+    svg.appendChild(arc)
+    activityState.angleArcs.push(arc)
+
+    // 각도 표시 (호 근처)
+    const midAngle = (angle1 + angle2) / 2
+    const labelRadius = arcRadius + 4
+    const labelX = v2.x + Math.cos(midAngle) * labelRadius
+    const labelY = v2.y + Math.sin(midAngle) * labelRadius
+    
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    text.setAttribute('x', String(v2.x + 15))
-    text.setAttribute('y', String(v2.y - 15))
+    text.setAttribute('x', String(labelX))
+    text.setAttribute('y', String(labelY))
+    text.setAttribute('text-anchor', 'middle')
+    text.setAttribute('dominant-baseline', 'middle')
     text.classList.add('angle-label')
     text.textContent = `${angles[i]}°`
     svg.appendChild(text)
@@ -2000,15 +2126,15 @@ function showDiagonals(svg, vertices, resultsDiv, showJudgment = true) {
   const intersectionPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
   intersectionPoint.setAttribute('cx', String(intersection.x))
   intersectionPoint.setAttribute('cy', String(intersection.y))
-  intersectionPoint.setAttribute('r', 4)
+  intersectionPoint.setAttribute('r', 0.6)
   intersectionPoint.classList.add('intersection-point')
   svg.appendChild(intersectionPoint)
   activityState.diagonals.push(intersectionPoint)
 
   // 교점 라벨 "O" 추가
   const intersectionLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-  intersectionLabel.setAttribute('x', String(intersection.x + 10))
-  intersectionLabel.setAttribute('y', String(intersection.y - 10))
+  intersectionLabel.setAttribute('x', String(intersection.x + 2))
+  intersectionLabel.setAttribute('y', String(intersection.y - 2))
   intersectionLabel.classList.add('point-label')
   intersectionLabel.textContent = 'O'
   svg.appendChild(intersectionLabel)
