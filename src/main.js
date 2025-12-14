@@ -177,7 +177,7 @@ function renderActivity(conditionId) {
         <div class="activity-titles">
           <h1>🔍 평행사변형 탐구 활동</h1>
           <p class="page-subtitle activity-condition-inline">
-            <strong>${condition.title}</strong> ${condition.description}
+            <strong>${condition.title}</strong>
           </p>
         </div>
         <button type="button" class="back-button">
