@@ -198,13 +198,13 @@ function renderActivity(conditionId) {
             <li>격자 위의 점을 한 번 클릭하여 첫 번째 점을 정합니다.</li>
             <li>다른 격자점을 한 번 더 클릭하면 두 점을 잇는 선분이 만들어집니다.</li>
             <li>이 과정을 반복하여 평행사변형이 될 수 있는 모양을 스스로 만들어 봅니다.</li>
-            <li>실수했다면 <strong>"이전 선분 지우기"</strong> 버튼으로 한 단계씩 되돌릴 수 있습니다.</li>
+            <li>실수했다면 <strong>"이전으로 되돌리기"</strong> 버튼으로 한 단계씩 되돌릴 수 있습니다.</li>
             <li>처음부터 다시 하고 싶다면 <strong>“모두 지우기”</strong> 버튼을 눌러 전체를 지웁니다.</li>
           </ol>
 
           <div class="activity-controls">
             <button type="button" id="undo-segment-button" class="control-button">
-              이전 선분 지우기
+              이전으로 되돌리기
             </button>
             <button
               type="button"
@@ -426,8 +426,8 @@ function createGridSvg() {
     const GRID_ROWS = 7
     const GRID_COLS = 7
     const PADDING = 3
-    const HORIZONTAL_SPACING = 10 // 가로 간격
-    const VERTICAL_SPACING = 15  // 세로 간격
+    const HORIZONTAL_SPACING = 5 // 가로 간격
+    const VERTICAL_SPACING = 8  // 세로 간격
     // ====================================
   
     // 격자 크기 계산
@@ -436,8 +436,8 @@ function createGridSvg() {
   
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-   svg.setAttribute('width', `${width}`) 
-  svg.setAttribute('height', `${height}`)
+   svg.setAttribute('width', `100%`) 
+  svg.setAttribute('height', `100%`)
     svg.classList.add('grid-svg')
     
     // 격자점 (작은 원형 점)
@@ -446,11 +446,11 @@ function createGridSvg() {
         const x = PADDING + HORIZONTAL_SPACING * c
         const y = PADDING + VERTICAL_SPACING * r
   
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-        circle.setAttribute('cx', x)
-        circle.setAttribute('cy', y)
-        circle.setAttribute('r', 1) // 점 크기 유지
-        circle.classList.add('grid-point')
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      circle.setAttribute('cx', x)
+      circle.setAttribute('cy', y)
+      circle.setAttribute('r', 0.6) // 점 크기
+      circle.classList.add('grid-point')
         
         circle.dataset.row = String(r)
         circle.dataset.col = String(c)
@@ -592,6 +592,8 @@ function handlePointClick(point, svg) {
   // 첫 번째 점 선택
   if (!selectedPoint) {
     point.classList.add('grid-point--active')
+    // 선택된 점의 크기를 약간만 증가시킴 (기본 0.6에서 0.9로)
+    point.setAttribute('r', '0.9')
     activityState.selectedPoint = point
     activityState.actions.push({ type: 'select', element: point })
     return
@@ -635,6 +637,8 @@ function handlePointClick(point, svg) {
   })
 
   selectedPoint.classList.remove('grid-point--active')
+  // 선택 해제 시 원래 크기로 복원
+  selectedPoint.setAttribute('r', '0.6')
   activityState.selectedPoint = null
 }
 
@@ -692,6 +696,8 @@ function handleEraserPointClick(point, svg) {
   // 선택된 점이면 선택 해제
   if (activityState.selectedPoint === point) {
     point.classList.remove('grid-point--active')
+    // 선택 해제 시 원래 크기로 복원
+    point.setAttribute('r', '0.6')
     activityState.selectedPoint = null
   }
   
@@ -718,42 +724,66 @@ function handleEraserPointClick(point, svg) {
   }
 }
 
-// 이전 선분 지우기
+// 이전으로 되돌리기
 function handleUndoSegment(svg) {
-  // 가장 최근의 선분 액션 찾기
-  let foundIndex = -1
-  for (let i = activityState.actions.length - 1; i >= 0; i--) {
-    if (activityState.actions[i].type === 'segment') {
-      foundIndex = i
-      break
-    }
-  }
+  if (activityState.actions.length === 0) return
   
-  if (foundIndex === -1) return
+  // 가장 최근 액션 가져오기
+  const lastAction = activityState.actions[activityState.actions.length - 1]
   
-  const last = activityState.actions.splice(foundIndex, 1)[0]
-  last.element.remove()
-  
-  // 선분과 연결된 점들의 라벨 제거
-  if (last.point1) {
-    const vertex1 = activityState.vertices.find(v => v.element === last.point1)
-    if (vertex1 && vertex1.labelEl) {
-      vertex1.labelEl.remove()
-      const index = activityState.vertices.indexOf(vertex1)
+  if (lastAction.type === 'select') {
+    // 점을 마지막에 찍었으면 점 선택 해제 및 제거
+    const point = lastAction.element
+    
+    // vertices에서 해당 점 찾아서 라벨 제거
+    const vertex = activityState.vertices.find(v => v.element === point)
+    if (vertex && vertex.labelEl) {
+      vertex.labelEl.remove()
+      const index = activityState.vertices.indexOf(vertex)
       if (index > -1) {
         activityState.vertices.splice(index, 1)
       }
     }
-  }
-  if (last.point2) {
-    const vertex2 = activityState.vertices.find(v => v.element === last.point2)
-    if (vertex2 && vertex2.labelEl) {
-      vertex2.labelEl.remove()
-      const index = activityState.vertices.indexOf(vertex2)
-      if (index > -1) {
-        activityState.vertices.splice(index, 1)
+    
+    // 선택 해제
+    point.classList.remove('grid-point--active')
+    point.setAttribute('r', '0.6')
+    activityState.selectedPoint = null
+    
+    // 액션에서 제거
+    activityState.actions.pop()
+    
+  } else if (lastAction.type === 'segment') {
+    // 선분이 생겼으면 선분과 마지막 점 제거, 이전 점을 선택된 상태로 복원
+    const segment = lastAction
+    
+    // 선분 제거
+    segment.element.remove()
+    
+    // 마지막 점(point2) 제거
+    if (segment.point2) {
+      const vertex2 = activityState.vertices.find(v => v.element === segment.point2)
+      if (vertex2 && vertex2.labelEl) {
+        vertex2.labelEl.remove()
+        const index = activityState.vertices.indexOf(vertex2)
+        if (index > -1) {
+          activityState.vertices.splice(index, 1)
+        }
       }
     }
+    
+    // 이전 점(point1)을 선택된 상태로 복원
+    if (segment.point1) {
+      segment.point1.classList.add('grid-point--active')
+      segment.point1.setAttribute('r', '0.9')
+      activityState.selectedPoint = segment.point1
+    }
+    
+    // 액션에서 제거
+    activityState.actions.pop()
+    
+    // segment 액션 전의 select 액션도 제거해야 함 (선분을 만들 때 select 액션이 있었을 수도)
+    // 하지만 select 액션은 segment 액션보다 앞에 있으므로 이미 처리됨
   }
   
   // 사각형이 있고 꼭짓점이 4개가 아니면 사각형 제거
@@ -852,6 +882,8 @@ function handleReset() {
       action.element.remove()
     } else if (action.type === 'select') {
       action.element.classList.remove('grid-point--active')
+      // 선택 해제 시 원래 크기로 복원
+      action.element.setAttribute('r', '0.6')
     }
   })
 
@@ -1609,7 +1641,7 @@ function showParallelSides(svg, vertices, resultsDiv) {
     edgeLine.dataset.edgeIndex = String(i)
     edgeLine.style.cursor = 'pointer'
     edgeLine.style.stroke = '#2563eb'
-    edgeLine.style.strokeWidth = '3'
+    edgeLine.style.strokeWidth = '1.2'
     edgeLine.style.opacity = '0.6'
     svg.appendChild(edgeLine)
     activityState.parallelRulers.push(edgeLine)
@@ -1643,10 +1675,10 @@ function showParallelSides(svg, vertices, resultsDiv) {
     edges.forEach(e => {
       if (e.index === edgeIndex) {
         e.line.style.stroke = '#ea580c'
-        e.line.style.strokeWidth = '4'
+        e.line.style.strokeWidth = '1.5'
       } else {
         e.line.style.stroke = '#2563eb'
-        e.line.style.strokeWidth = '3'
+        e.line.style.strokeWidth = '1.2'
       }
     })
     
@@ -1668,7 +1700,7 @@ function showParallelSides(svg, vertices, resultsDiv) {
     parallelLine.setAttribute('y2', String(midY + perpY + dy / 2))
     parallelLine.classList.add('parallel-check-line')
     parallelLine.style.stroke = '#ea580c'
-    parallelLine.style.strokeWidth = '2'
+    parallelLine.style.strokeWidth = '1'
     parallelLine.style.strokeDasharray = '6 4'
     parallelLine.style.cursor = 'grab'
     svg.appendChild(parallelLine)

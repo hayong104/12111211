@@ -263,7 +263,7 @@ body {
 .activity-body {
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 20px;
+  gap: 8px;
   align-items: flex-start;
   margin-bottom: 20px;
 }
@@ -564,11 +564,10 @@ body {
 
 .grid-point--active {
   fill: #2563eb;
-  r: 3.5;
 }
 
 .point-label {
-  font-size: 12px;
+  font-size: 3px;
   font-weight: 700;
   fill: #0f5132;
   text-anchor: middle;
@@ -578,21 +577,21 @@ body {
 
 .segment-line {
   stroke: #38bdf8;
-  stroke-width: 2.4;
+  stroke-width: 1;
   pointer-events: all;
 }
 
 .segment-preview {
   stroke: rgba(56, 189, 248, 0.5);
-  stroke-width: 2.4;
-  stroke-dasharray: 6 4;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
   pointer-events: none;
 }
 
 .quad-polygon {
   fill: rgba(191, 219, 254, 0.2);
   stroke: #2563eb;
-  stroke-width: 2.6;
+  stroke-width: 1.2;
 }
 
 .parallel-ruler {
