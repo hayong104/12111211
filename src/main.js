@@ -1932,6 +1932,10 @@ function showSideLengths(svg, vertices, resultsDiv, showJudgment = true) {
   activityState.lengthLabels.forEach(label => label.remove())
   activityState.lengthLabels = []
 
+  // 사각형의 중심점 계산
+  const centerX = (vertices[0].x + vertices[1].x + vertices[2].x + vertices[3].x) / 4
+  const centerY = (vertices[0].y + vertices[1].y + vertices[2].y + vertices[3].y) / 4
+
   const lengths = []
   for (let i = 0; i < 4; i++) {
     const v1 = vertices[i]
@@ -1943,18 +1947,30 @@ function showSideLengths(svg, vertices, resultsDiv, showJudgment = true) {
     const midX = (v1.x + v2.x) / 2
     const midY = (v1.y + v2.y) / 2
     
-    // 변에 수직인 방향으로 오프셋 계산 (변 근처에 표시)
+    // 변에 수직인 방향 계산
     const dx = v2.x - v1.x
     const dy = v2.y - v1.y
     const segLength = Math.hypot(dx, dy)
     if (segLength > 0) {
-      // 수직 방향으로 8픽셀 이동
-      const perpX = -dy / segLength * 8
-      const perpY = dx / segLength * 8
+      // 수직 벡터 (두 방향 중 하나)
+      const perpX = -dy / segLength
+      const perpY = dx / segLength
+      
+      // 중점에서 중심점으로의 벡터
+      const toCenterX = centerX - midX
+      const toCenterY = centerY - midY
+      
+      // 수직 벡터와 중심 방향 벡터의 내적을 확인하여 바깥쪽 방향 결정
+      const dot = perpX * toCenterX + perpY * toCenterY
+      
+      // 내적이 양수면 중심 방향, 음수면 바깥쪽 방향
+      // 바깥쪽은 내적이 음수이므로 방향을 반대로
+      const offsetX = dot > 0 ? -perpX * 2 : perpX * 2
+      const offsetY = dot > 0 ? -perpY * 2 : perpY * 2
       
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      text.setAttribute('x', String(midX + perpX))
-      text.setAttribute('y', String(midY + perpY))
+      text.setAttribute('x', String(midX + offsetX))
+      text.setAttribute('y', String(midY + offsetY))
       text.setAttribute('text-anchor', 'middle')
       text.setAttribute('dominant-baseline', 'middle')
       text.classList.add('length-label')
@@ -1998,8 +2014,12 @@ function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
   }
   activityState.angleArcs = []
 
+  // 사각형의 중심점 계산 (각도 라벨을 내부에 표시하기 위해)
+  const centerX = (vertices[0].x + vertices[1].x + vertices[2].x + vertices[3].x) / 4
+  const centerY = (vertices[0].y + vertices[1].y + vertices[2].y + vertices[3].y) / 4
+
   const angles = []
-  const arcRadius = 10 // 호의 반지름
+  const arcRadius = 5 // 호의 반지름 (점으로부터 약간 떨어진 정도로 작게)
   for (let i = 0; i < 4; i++) {
     const v1 = vertices[i]
     const v2 = vertices[(i + 1) % 4]
@@ -2016,19 +2036,19 @@ function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
     angles.push(Math.round(angle))
 
     // 각도의 시작 방향과 끝 방향 계산 (라디안)
-    // v2에서 v1로 가는 방향과 v2에서 v3로 가는 방향
+    // v2를 중심으로 v1 방향과 v3 방향
     const dir1 = { x: v1.x - v2.x, y: v1.y - v2.y } // v2 -> v1
     const dir2 = { x: v3.x - v2.x, y: v3.y - v2.y } // v2 -> v3
     const angle1 = Math.atan2(dir1.y, dir1.x)
     const angle2 = Math.atan2(dir2.y, dir2.x)
     
-    // 호의 시작점과 끝점
+    // 호의 시작점과 끝점 (v2를 중심으로 한 원의 일부)
     const startX = v2.x + Math.cos(angle1) * arcRadius
     const startY = v2.y + Math.sin(angle1) * arcRadius
     const endX = v2.x + Math.cos(angle2) * arcRadius
     const endY = v2.y + Math.sin(angle2) * arcRadius
     
-    // SVG arc 경로 생성
+    // SVG arc 경로 생성 (v2를 중심으로 한 원의 일부)
     const largeArcFlag = angle > 180 ? 1 : 0
     const arcPath = `M ${startX} ${startY} A ${arcRadius} ${arcRadius} 0 ${largeArcFlag} 1 ${endX} ${endY}`
     
@@ -2041,21 +2061,26 @@ function showAngles(svg, vertices, resultsDiv, showJudgment = true) {
     svg.appendChild(arc)
     activityState.angleArcs.push(arc)
 
-    // 각도 표시 (호 근처)
-    const midAngle = (angle1 + angle2) / 2
-    const labelRadius = arcRadius + 4
-    const labelX = v2.x + Math.cos(midAngle) * labelRadius
-    const labelY = v2.y + Math.sin(midAngle) * labelRadius
-    
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    text.setAttribute('x', String(labelX))
-    text.setAttribute('y', String(labelY))
-    text.setAttribute('text-anchor', 'middle')
-    text.setAttribute('dominant-baseline', 'middle')
-    text.classList.add('angle-label')
-    text.textContent = `${angles[i]}°`
-    svg.appendChild(text)
-    activityState.angleLabels.push(text)
+    // 각도 표시 (사각형 내부에 표시 - 중심 방향으로)
+    const toCenterX = centerX - v2.x
+    const toCenterY = centerY - v2.y
+    const toCenterDist = Math.hypot(toCenterX, toCenterY)
+    if (toCenterDist > 0) {
+      // 중심 방향으로 약간 이동한 위치
+      const labelOffset = arcRadius + 3
+      const labelX = v2.x + (toCenterX / toCenterDist) * labelOffset
+      const labelY = v2.y + (toCenterY / toCenterDist) * labelOffset
+      
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      text.setAttribute('x', String(labelX))
+      text.setAttribute('y', String(labelY))
+      text.setAttribute('text-anchor', 'middle')
+      text.setAttribute('dominant-baseline', 'middle')
+      text.classList.add('angle-label')
+      text.textContent = `${angles[i]}°`
+      svg.appendChild(text)
+      activityState.angleLabels.push(text)
+    }
   }
 
   // 결과 설명
