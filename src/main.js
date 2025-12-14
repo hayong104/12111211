@@ -27,14 +27,14 @@ function renderHome() {
     <main class="page">
       ${renderKeyStatus()}
       <header class="page-header">
-        <h1>평행사변형이 될 조건 알아보기</h1>
+        <h1>🤔 평행사변형이 되는 조건은❓</h1>
         <p class="page-subtitle">
-          아래에서 오늘 활동에서 확인해 볼 조건을 선택해 보세요.
+          제시된 조건 중 하나를 선택해서 평행사변형이 되는 조건인지 확인해봅시다.
         </p>
       </header>
 
       <section class="condition-section">
-        <h2 class="section-title">조건 선택하기</h2>
+        <h2 class="section-title">✔️ 조건 선택하기</h2>
 
         <div class="condition-grid">
           <button class="condition-card condition-card--disabled" data-condition="1" disabled>
@@ -254,10 +254,10 @@ function renderActivity(conditionId) {
         <div class="quad-info-section" id="quad-info-section" style="display: none; margin-top: 20px;">
           <h2 class="section-title">사각형에 대한 정보 확인하기</h2>
           <div class="info-controls">
+            <button type="button" id="info-show-parallel-btn" class="control-button">대변의 평행 여부 확인</button>
             <button type="button" id="info-show-lengths-btn" class="control-button">네 변의 길이</button>
             <button type="button" id="info-show-angles-btn" class="control-button">네 내각의 크기</button>
             <button type="button" id="info-show-diagonals-btn" class="control-button">두 대각선의 관계 확인</button>
-            <button type="button" id="info-show-parallel-btn" class="control-button">대변의 평행 여부 확인</button>
           </div>
           <div id="info-results" class="analysis-results"></div>
           <button type="button" id="info-next-btn" class="control-button" style="margin-top: 12px; display: none;">
