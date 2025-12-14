@@ -1042,7 +1042,7 @@ function setupChatUI() {
 
     activityState.isSending = true
     checkBtn.disabled = true
-    status.textContent = '피드백을 작성하는 중입니다...'
+    status.textContent = '조건을 만족하는지 확인인 중입니다...'
     
     // 조건 확인 결과는 condition-result에만 표시 (채팅 로그에는 추가하지 않음)
     const conditionResultDiv = document.getElementById('condition-result')
