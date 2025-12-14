@@ -140,6 +140,7 @@ const activityState = {
   angleLabels: [], // 각도 라벨
   diagonals: [], // 대각선
   eraserMode: false, // 지우개 모드
+  conditionResult: null, // 조건 확인 결과 저장
 }
 
 // 활동 화면
@@ -905,6 +906,8 @@ function handleReset() {
   if (chatStatus) chatStatus.textContent = '사각형을 만든 후 조건 확인을 진행하세요.'
   const conditionResult = document.getElementById('condition-result')
   if (conditionResult) conditionResult.innerHTML = ''
+  // 조건 확인 결과 초기화
+  activityState.conditionResult = null
   const chatInput = document.getElementById('chat-input')
   const chatSend = document.getElementById('chat-send')
   if (chatInput) chatInput.disabled = true
@@ -993,22 +996,19 @@ function setupChatUI() {
     checkBtn.disabled = true
     status.textContent = '피드백을 작성하는 중입니다...'
     
-    // 로딩 인디케이터 표시
-    const typingMessage = addChatMessage('assistant', '', true)
+    // 조건 확인 결과는 condition-result에만 표시 (채팅 로그에는 추가하지 않음)
+    const conditionResultDiv = document.getElementById('condition-result')
+    if (conditionResultDiv) {
+      conditionResultDiv.innerHTML = '<span class="typing-indicator">...</span>'
+    }
     
     try {
       const context = summarizeCurrentWork()
       const autoQuestion = '내가 만든 도형이 선택한 조건을 만족하는지 확인해줘.'
       const reply = await callChatGPT(apiKey, autoQuestion, context)
       
-      // 조건 확인 결과를 별도 섹션에 표시
-      const conditionResultDiv = document.getElementById('condition-result')
-      if (conditionResultDiv && typingMessage) {
-        updateTypingMessage(typingMessage, reply)
-        // typingMessage를 condition-result로 이동
-        conditionResultDiv.innerHTML = ''
-        conditionResultDiv.appendChild(typingMessage)
-      } else if (conditionResultDiv) {
+      // 조건 확인 결과를 condition-result에만 표시 (채팅 로그에는 추가하지 않음)
+      if (conditionResultDiv) {
         const formattedText = reply.split('\n').filter(line => line.trim() !== '').map(line => {
           if (/^\(\d+\)/.test(line.trim())) {
             return `<div class="feedback-item">${line.trim()}</div>`
@@ -1016,14 +1016,22 @@ function setupChatUI() {
           return line.trim()
         }).join('<br>')
         conditionResultDiv.innerHTML = formattedText
+        // 조건 확인 결과를 저장 (조건 관련 질문일 때만 사용)
+        activityState.conditionResult = reply
       }
       
-      // AI 대화 패널 표시
+      // AI 대화 패널 표시 (학생이 질문할 수 있도록 활성화)
       const chatPanel = document.getElementById('chat-panel')
       if (chatPanel) {
         chatPanel.style.display = 'block'
       }
+      // 채팅 입력은 활성화하되, 채팅 로그는 비워둠 (학생이 먼저 질문할 때까지)
       setChatEnabled(true)
+      // 채팅 로그는 비워둠 (조건 확인 결과는 condition-result에만 표시됨)
+      const chatLog = document.getElementById('chat-log')
+      if (chatLog) {
+        chatLog.innerHTML = ''
+      }
       
       // 조건이 모두 충족되었는지 확인 (답변에 "모든 조건을 만족합니다" 또는 "모든 조건"이 포함되어 있는지 확인)
       const allConditionsMet = reply.includes('모든 조건을 만족') || reply.includes('모든 조건') || 
@@ -1042,10 +1050,8 @@ function setupChatUI() {
         }
       }
     } catch (err) {
-      if (typingMessage) {
-        updateTypingMessage(typingMessage, `오류가 발생했습니다: ${err.message || err}`)
-      } else {
-        addChatMessage('assistant', `오류가 발생했습니다: ${err.message || err}`)
+      if (conditionResultDiv) {
+        conditionResultDiv.innerHTML = `오류가 발생했습니다: ${err.message || err}`
       }
       checkBtn.disabled = false
       status.textContent = '조건 확인을 다시 시도해 주세요.'
@@ -1355,11 +1361,42 @@ function summarizeCurrentWork() {
   }
 }
 
+/**
+ * ChatGPT API를 호출하는 래퍼 함수
+ * @param {string} apiKey - OpenAI API 키
+ * @param {string} userMessage - 사용자 메시지
+ * @param {Object} context - 컨텍스트 정보
+ * @param {boolean} isAfterConditionCheck - 조건 확인 완료 후 질문인지 여부
+ * @returns {Promise<string>} 모델이 생성한 답변 텍스트
+ */
+/**
+ * 학생의 질문이 조건과 관련이 있는지 판단
+ * @param {string} message - 학생의 질문
+ * @returns {boolean} 조건과 관련이 있으면 true
+ */
+function isConditionRelatedQuestion(message) {
+  const conditionKeywords = [
+    '조건', '평행', '대변', '길이', '선분', '변', '사각형', '평행사변형',
+    '만족', '충족', '확인', '체크', '맞는지', '맞나', '어떤', '무엇',
+    '어떻게', '왜', '이유', '원인', '비교', '같은', '다른', '차이'
+  ]
+  const lowerMessage = message.toLowerCase()
+  return conditionKeywords.some(keyword => lowerMessage.includes(keyword))
+}
+
 async function callChatGPT(apiKey, userMessage, context, isAfterConditionCheck = false) {
   let systemContent
   if (isAfterConditionCheck) {
     // 조건 확인 완료 후 질문 - 친근한 대화 형태
-    systemContent = '너는 중학교 2학년 학생들과 대화하는 따뜻하고 친근한 선생님이야. 학생의 질문에 답할 때 너무 바로 본론으로 들어가지 말고, 먼저 학생의 생각을 이해하고 격려하는 말을 해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게, 부드럽게 설명해줘. 질문의 의도에 맞게 구체적으로 설명하되, 학생이 편안하게 느낄 수 있도록 따뜻한 톤으로 대화해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.'
+    const isConditionRelated = isConditionRelatedQuestion(userMessage)
+    
+    if (isConditionRelated) {
+      // 조건과 관련된 질문일 때만 조건 확인 결과를 언급
+      systemContent = '너는 중학교 2학년 학생들과 대화하는 따뜻하고 친근한 선생님이야. 학생이 조건이나 도형에 대해 질문할 때만, 위에서 확인한 조건 확인 결과를 참고해서 답변해줘. 학생의 질문에 답할 때 너무 바로 본론으로 들어가지 말고, 먼저 학생의 생각을 이해하고 격려하는 말을 해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게, 부드럽게 설명해줘. 질문의 의도에 맞게 구체적으로 설명하되, 학생이 편안하게 느낄 수 있도록 따뜻한 톤으로 대화해줘.'
+    } else {
+      // 조건과 관련 없는 일반적인 대화
+      systemContent = '너는 중학교 2학년 학생들과 대화하는 따뜻하고 친근한 선생님이야. 학생의 질문에 자연스럽게 답변해줘. 조건 확인 결과나 도형에 대한 언급은 하지 말고, 학생의 질문에만 집중해서 답변해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게, 부드럽게 설명해줘. 학생이 편안하게 느낄 수 있도록 따뜻한 톤으로 대화해줘.'
+    }
   } else {
     // 처음 조건 확인 시
     systemContent = '너는 중학교 2학년 학생들에게 설명하는 교사 보조 챗봇이야. 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 질문의 의도에 맞게 구체적으로 설명해줘. 선분에 대한 피드백만 해주고, 사각형이 만들어지는지, 평행사변형이 만들어지는지 등은 절대 언급하지 마.\n\n중요: 만족하지 않는 조건에 대한 피드백만 제공해줘. 만족하는 조건에 대해서는 언급하지 마. 만약 모든 조건을 만족한다면 "모든 조건을 만족합니다"라고만 간단히 말해줘.\n\n피드백을 줄 때는 반드시 다음 세 가지 기준으로 구분해서 설명해줘. 마크다운 형식(**나 * 같은 기호)을 사용하지 말고, 다음과 같은 형식으로 작성해줘:\n\n(1) 대변 관계 확인: 두 선분이 마주보는 변(대변)인지 확인\n\n(2) 평행 여부 확인: 두 선분이 평행한지 확인\n\n(3) 길이 비교: 두 선분의 길이가 같은지 확인\n\n각 선분 쌍에 대해 만족하지 않는 조건만 설명하고, 만족하지 않는 부분이 있으면 어떤 부분이 부족한지 간단히 설명해 줘. 각 항목 사이에는 빈 줄을 넣어서 문단을 구분해줘.'
@@ -1373,12 +1410,33 @@ async function callChatGPT(apiKey, userMessage, context, isAfterConditionCheck =
     {
       role: 'user',
       content: isAfterConditionCheck 
-        ? `학생이 남긴 질문: ${userMessage}\n\n현재 작업 요약: ${JSON.stringify(context, null, 2)}\n\n학생의 질문에 직접적으로 답변해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게 설명해줘. 질문의 의도에 맞게 구체적으로 설명해줘.`
+        ? (() => {
+            const isConditionRelated = isConditionRelatedQuestion(userMessage)
+            if (isConditionRelated && activityState.conditionResult) {
+              // 조건과 관련된 질문일 때만 컨텍스트와 조건 확인 결과 포함
+              return `학생이 남긴 질문: ${userMessage}\n\n현재 작업 요약: ${JSON.stringify(context, null, 2)}\n\n조건 확인 결과: ${activityState.conditionResult}\n\n위 정보를 참고하여, 학생의 질문에 직접적으로 답변해줘. 조건 확인 결과를 참고해서 답변하되, 학생의 질문에만 집중해서 답변해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게 설명해줘.`
+            } else {
+              // 조건과 관련 없는 질문일 때는 컨텍스트와 조건 확인 결과 없이 대화만
+              return `학생이 남긴 질문: ${userMessage}\n\n학생의 질문에 자연스럽게 답변해줘. 조건 확인 결과나 도형에 대한 언급은 하지 말고, 학생의 질문에만 집중해서 답변해줘. 중학교 2학년 학생과 대화하는 것처럼 친근하고 이해하기 쉽게 설명해줘.`
+            }
+          })()
         : `학생이 남긴 질문: ${userMessage}\n\n현재 작업 요약: ${JSON.stringify(context, null, 2)}\n\n위 정보에서 segmentPairs 배열을 참고하여, 학생의 질문에 직접적으로 답변해줘. 조건에 맞는지 여부를 다시 말하지 말고, 질문에 대한 답만 제공해줘. 각 선분 쌍에 대해 다음 세 가지를 확인하되, 질문의 의도에 맞게 답변해줘:\n1. areOppositeSides: 두 선분이 대변 관계인지\n2. areParallel: 두 선분이 평행한지\n3. sameLength: 두 선분의 길이가 같은지\n\n중요: 만족하지 않는 조건에 대한 피드백만 제공해줘. 만족하는 조건에 대해서는 언급하지 마. 만약 모든 조건을 만족한다면 "모든 조건을 만족합니다"라고만 간단히 말해줘. 각 선분 쌍에 대해 만족하지 않는 조건만 설명해줘. 선분들에 대한 피드백만 해주고, 사각형이나 평행사변형에 대한 언급은 하지 마.`,
     },
   ]
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  return await callChatGptApi(messages, apiKey)
+}
+
+/**
+ * OpenAI Chat Completion API를 호출하여 응답을 받아옵니다.
+ * @param {Array<Object>} messages - 모델에게 전달할 대화 메시지 배열
+ * @param {string} apiKey - OpenAI API 키
+ * @returns {Promise<string>} 모델이 생성한 답변 텍스트
+ */
+async function callChatGptApi(messages, apiKey) {
+  const apiUrl = 'https://api.openai.com/v1/chat/completions';
+  
+  const requestOptions = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1390,17 +1448,26 @@ async function callChatGPT(apiKey, userMessage, context, isAfterConditionCheck =
       temperature: 0.4,
       max_tokens: 300,
     }),
-  })
+  };
 
+  const response = await fetch(apiUrl, requestOptions);
+
+  // 1. 응답 상태 코드 확인 및 오류 처리
   if (!response.ok) {
-    const errText = await response.text()
-    throw new Error(`API 오류 (${response.status}): ${errText}`)
+    const errorBody = await response.text();
+    // API 오류 메시지를 좀 더 명확하게 제공
+    throw new Error(`OpenAI API 오류 (${response.status} ${response.statusText}): ${errorBody}`);
   }
 
-  const data = await response.json()
-  const reply = data.choices?.[0]?.message?.content?.trim()
-  if (!reply) throw new Error('API 응답을 읽을 수 없습니다.')
-  return reply
+  const data = await response.json();
+
+  // 2. 응답 데이터에서 답변 텍스트 추출 및 추가적인 안전 장치
+  const reply = data.choices?.[0]?.message?.content?.trim();
+  if (!reply) {
+    // API 응답 구조가 예상과 다를 때를 대비
+    throw new Error('API 응답에서 유효한 답변을 찾을 수 없습니다.');
+  }
+  return reply;
 }
 
 // 사각형 정보 확인 섹션 설정
