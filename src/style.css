@@ -20,7 +20,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f0fdf4;
+  /* 부드러운 파스텔톤 배경 */
+  background: #f7fee7; 
   color: #1f2937;
 }
 
@@ -31,55 +32,54 @@ body {
 }
 
 .page {
-  background: #ffffff;
-  border-radius: 24px;
+  /* 고급스럽고 따뜻한 배경 */
+  background: #fffef9;
+  /* 모서리를 더 둥글게 */
+  border-radius: 30px; 
   padding: 28px 24px 32px;
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  /* 테두리 색상을 더 부드럽고 따뜻하게 */
+  border: 1px solid rgba(220, 180, 140, 0.3); 
+  /* 부드러운 그림자 효과 */
   box-shadow:
-    0 4px 6px rgba(34, 197, 94, 0.06),
-    0 1px 3px rgba(34, 197, 94, 0.08);
+    0 8px 16px rgba(200, 160, 120, 0.08), 
+    0 3px 6px rgba(200, 160, 120, 0.06);
 }
 
 .page-header {
-  text-align: left;
-  margin-bottom: 24px;
+  text-align: center; /* 헤더 중앙 정렬 */
+  margin-bottom: 28px; 
 }
 
 .page-header h1 {
-  font-size: 2.1rem;
-  margin: 0 0 6px;
-  letter-spacing: -0.03em;
-  color: #166534;
-  font-weight: 700;
+  font-size: 2.2rem; 
+  margin: 0 0 8px;
+  letter-spacing: -0.02em; 
+  color: #0c4a6e; 
+  font-weight: 800; 
   display: inline-block;
-  padding: 14px 28px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  border: 2px solid rgba(34, 197, 94, 0.3);
+  padding: 16px 32px; 
+  /* 모서리를 더 둥글게 */
+  border-radius: 20px; 
+  /* 고급스럽고 따뜻한 배경 */
+  background: #fef3e7; 
+  /* 테두리와 그림자 색상도 이에 맞게 조정 */
+  border: 2px solid rgba(220, 180, 140, 0.4); 
   box-shadow: 
-    0 4px 12px rgba(34, 197, 94, 0.2),
-    0 2px 4px rgba(34, 197, 94, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 6px 16px rgba(200, 160, 120, 0.15), 
+    0 3px 6px rgba(200, 160, 120, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .page-header h1::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 101, 52, 0.05) 100%);
-  pointer-events: none;
+  display: none; /* HTML에 직접 이모지 추가했으므로 ::before 제거 */
 }
 
 .page-subtitle {
   margin: 0;
-  font-size: 0.98rem;
-  color: #4b5563;
+  font-size: 1rem; 
+  color: #6b7280; 
 }
 
 .condition-section {
@@ -87,18 +87,19 @@ body {
 }
 
 .section-title {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  margin: 0 0 16px;
-  color: #166534;
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  margin: 0 0 18px; 
+  color: #0e7490; 
+  padding: 12px 20px;
+  /* 모서리를 더 둥글게 */
+  border-radius: 14px; 
+  /* 고급스럽고 따뜻한 배경 */
+  background: #fef3e7;
+  border: 1px solid rgba(220, 180, 140, 0.35);
   box-shadow: 
-    0 2px 6px rgba(34, 197, 94, 0.15),
-    0 1px 2px rgba(34, 197, 94, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 3px 8px rgba(200, 160, 120, 0.12),
+    0 1px 3px rgba(200, 160, 120, 0.08);
   display: inline-block;
 }
 
@@ -113,8 +114,9 @@ body {
   width: 100%;
   text-align: left;
   padding: 16px 16px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(229, 231, 235, 0.8);
+  /* 모서리를 더 둥글게 */
+  border-radius: 16px; 
+  border: 1px solid rgba(229, 231, 235, 1);
   background: #ffffff;
   color: inherit;
   cursor: pointer;
@@ -126,11 +128,11 @@ body {
 }
 
 .condition-card:hover {
-  transform: translateY(-2px);
-  border-color: #d1d5db;
+  transform: translateY(-3px); /* 호버 시 이동 효과 강조 */
+  border-color: #a5f3fc; /* 호버 시 민트색 계열 테두리 */
   box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.07),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+    0 8px 12px rgba(0, 0, 0, 0.1),
+    0 4px 6px rgba(0, 0, 0, 0.08);
 }
 
 .condition-card:focus-visible {
@@ -141,7 +143,7 @@ body {
 .condition-card--disabled {
   cursor: not-allowed;
   opacity: 0.5;
-  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+  background: #f5f5f5;
   border-color: rgba(156, 163, 175, 0.6);
   color: #6b7280;
 }
@@ -171,15 +173,17 @@ body {
 .condition-tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 0.72rem;
+  padding: 4px 10px; /* 패딩 증가 */
+  /* 모서리를 더 둥글게 */
+  border-radius: 12px; 
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid rgba(209, 213, 219, 0.8);
+  /* 배경을 부드러운 파스텔톤으로 변경 */
+  background: #f0f9ff; 
+  color: #0891b2; /* 짙은 하늘색 계열 */
+  border: 1px solid rgba(165, 243, 252, 0.8);
 }
 
 .helper-text {
@@ -198,6 +202,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  text-align: left; /* 왼쪽 정렬 */
 }
 
 .activity-titles {
@@ -205,37 +210,32 @@ body {
 }
 
 .activity-titles h1 {
+  /* page-header h1과 동일하게 수정 */
   display: inline-block;
-  padding: 14px 28px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  border: 2px solid rgba(34, 197, 94, 0.3);
+  padding: 16px 32px;
+  border-radius: 20px;
+  /* 고급스럽고 따뜻한 배경 */
+  background: #fef3e7;
+  border: 2px solid rgba(220, 180, 140, 0.4);
   box-shadow: 
-    0 4px 12px rgba(34, 197, 94, 0.2),
-    0 2px 4px rgba(34, 197, 94, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  color: #166534;
+    0 6px 16px rgba(200, 160, 120, 0.15),
+    0 3px 6px rgba(200, 160, 120, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: #0c4a6e;
   margin-bottom: 8px;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .activity-titles h1::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 101, 52, 0.05) 100%);
-  pointer-events: none;
+  display: none; /* HTML에 직접 이모지 추가했으므로 ::before 제거 */
 }
 
 .back-button {
-  border-radius: 999px;
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  padding: 6px 14px;
+  /* 모서리를 더 둥글게 */
+  border-radius: 14px; 
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px; /* 패딩 증가 */
   background: #ffffff;
   color: #4b5563;
   font-size: 0.86rem;
@@ -260,10 +260,17 @@ body {
   color: #4b5563;
 }
 
+.activity-condition-inline {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  color: #4b5563;
+  font-weight: 500;
+}
+
 .activity-body {
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 8px;
+  grid-template-columns: 1fr 1.8fr; /* 활동 방법 부분을 더 크게 */
+  gap: 4px; /* 여백 거의 없애기 */
   align-items: flex-start;
   margin-bottom: 20px;
 }
@@ -315,9 +322,10 @@ body {
 }
 
 .control-button--active {
-  background: #22c55e;
+  /* 활성화 버튼 색상 강조 (민트색 계열) */
+  background: #14b8a6; /* 원본: #22c55e */
   color: #ffffff;
-  border-color: #22c55e;
+  border-color: #14b8a6;
 }
 
 .miniature-activity-window {
@@ -336,7 +344,7 @@ body {
 
 .miniature-window-header {
   padding: 10px 14px;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  background: #f0f9f4;
   border-bottom: 1px solid rgba(34, 197, 94, 0.25);
   box-shadow: 
     0 2px 4px rgba(34, 197, 94, 0.1),
@@ -389,7 +397,7 @@ body {
 
 .fixed-window-header {
   padding: 12px 16px;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  background: #f0f9f4;
   border-bottom: 1px solid rgba(34, 197, 94, 0.3);
   box-shadow: 
     0 2px 4px rgba(34, 197, 94, 0.1),
@@ -529,7 +537,8 @@ body {
   width: 100%;
   aspect-ratio: 1 / 1;
   max-width: 400px;
-  border-radius: 12px;
+  /* 모서리를 더 둥글게 */
+  border-radius: 16px; 
   background: #ffffff;
   border: 1px solid rgba(34, 197, 94, 0.25);
   box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.15);
@@ -548,7 +557,6 @@ body {
 }
 
 .grid-triangle {
-  fill: none;
   stroke: rgba(209, 213, 219, 0.4);
   stroke-width: 0.6;
 }
@@ -613,13 +621,14 @@ body {
 }
 
 .control-button {
-  border-radius: 8px;
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  padding: 8px 14px;
+  /* 모서리를 더 둥글게 */
+  border-radius: 12px; 
+  border: 1px solid rgba(13, 148, 136, 0.3); /* 색상 계열 조정 */
+  padding: 10px 16px; /* 패딩 증가 */
   background: #ffffff;
-  color: #166534;
-  font-size: 0.86rem;
-  font-weight: 600;
+  color: #0d9488; /* 색상 계열 조정 */
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
   transition:
     background 0.15s ease-out,
@@ -629,18 +638,19 @@ body {
 
 .control-button:hover {
   background: #f0fdf4;
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.12);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 148, 136, 0.15); /* 그림자 강조 */
+  transform: translateY(-2px);
 }
 
 .control-button--secondary {
-  background: #dcfce7;
-  border-color: rgba(34, 197, 94, 0.3);
+  /* 색상 조정 */
+  background: #ccfbf1; 
+  border-color: rgba(13, 148, 136, 0.4);
 }
 
 .control-button--secondary:hover {
-  background: #bbf7d0;
-  border-color: rgba(34, 197, 94, 0.4);
+  background: #99f6e4;
+  border-color: rgba(13, 148, 136, 0.5);
 }
 
 .activity-side {
@@ -714,12 +724,14 @@ body {
   max-width: 600px;
   margin-top: 16px;
   background: #ffffff;
-  border: 1px solid rgba(34, 197, 94, 0.2);
-  border-radius: 14px;
+  /* 모서리 둥글게 */
+  border: 1px solid rgba(20, 184, 166, 0.3); 
+  border-radius: 18px; 
   padding: 12px 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.1);
 }
 
 .chat-status {
@@ -749,8 +761,9 @@ body {
 
 .chat-log {
   background: #ffffff;
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  border-radius: 10px;
+  /* 채팅 로그 테두리 색상 조정 */
+  border: 1px solid rgba(20, 184, 166, 0.4); 
+  border-radius: 14px;
   padding: 8px;
   height: 240px;
   overflow-y: auto;
@@ -768,17 +781,19 @@ body {
 }
 
 .chat-user {
-  background: #dcfce7;
+  /* 사용자 말풍선 부드러운 색상 */
+  background: #ccfbf1; 
   align-self: flex-end;
-  color: #166534;
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #0d9488;
+  border: 1px solid rgba(20, 184, 166, 0.5);
 }
 
 .chat-assistant {
-  background: #f0fdf4;
+  /* 챗봇 말풍선 부드러운 색상 */
+  background: #f0fdfa; 
   align-self: flex-start;
-  color: #166534;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #0d9488;
+  border: 1px solid rgba(20, 184, 166, 0.4);
 }
 
 .chat-assistant .feedback-item {

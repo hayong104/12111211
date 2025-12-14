@@ -27,7 +27,7 @@ function renderHome() {
     <main class="page">
       ${renderKeyStatus()}
       <header class="page-header">
-        <h1>평행사변형이 될 조건</h1>
+        <h1>✅ 평행사변형이 될 조건</h1>
         <p class="page-subtitle">
           아래에서 오늘 활동에서 확인해 볼 조건을 선택해 보세요.
         </p>
@@ -175,12 +175,9 @@ function renderActivity(conditionId) {
       ${renderKeyStatus()}
       <header class="page-header activity-header">
         <div class="activity-titles">
-          <h1>평행사변형 탐구 활동</h1>
-          <p class="page-subtitle">
-            선택한 조건: <strong>${condition.title}</strong>
-          </p>
-          <p class="activity-condition-text">
-            ${condition.description}
+          <h1>🔍 평행사변형 탐구 활동</h1>
+          <p class="page-subtitle activity-condition-inline">
+            <strong>${condition.title}</strong> ${condition.description}
           </p>
         </div>
         <button type="button" class="back-button">
@@ -424,8 +421,8 @@ function setupActivityEvents() {
 
 // 격자(SVG) 만들기 - 직사각형 격자 (7x7, 간격 감소)
 function createGridSvg() {
-    const GRID_ROWS = 7
-    const GRID_COLS = 7
+    const GRID_ROWS = 6
+    const GRID_COLS = 8
     const PADDING = 3
     const HORIZONTAL_SPACING = 5 // 가로 간격
     const VERTICAL_SPACING = 8  // 세로 간격
