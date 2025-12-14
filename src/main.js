@@ -27,7 +27,7 @@ function renderHome() {
     <main class="page">
       ${renderKeyStatus()}
       <header class="page-header">
-        <h1>✅ 평행사변형이 될 조건</h1>
+        <h1>평행사변형이 될 조건 알아보기</h1>
         <p class="page-subtitle">
           아래에서 오늘 활동에서 확인해 볼 조건을 선택해 보세요.
         </p>
@@ -175,7 +175,7 @@ function renderActivity(conditionId) {
       ${renderKeyStatus()}
       <header class="page-header activity-header">
         <div class="activity-titles">
-          <h1>🔍 평행사변형 탐구 활동</h1>
+          <h1>🔍 조건에 맞는 사각형 분석하기</h1>
           <p class="page-subtitle activity-condition-inline">
             <span class="condition-number-box">${condition.title}</span> ${condition.description}
           </p>
@@ -221,10 +221,6 @@ function renderActivity(conditionId) {
 
       <section class="chat-section" style="display: none;">
         <div class="condition-check-section">
-          <div class="chat-header">
-            <div class="chat-title">조건 확인</div>
-          </div>
-          <div id="chat-status" class="chat-status">사각형을 만든 후 조건 확인을 진행하세요.</div>
           <button id="chat-check" type="button" class="control-button chat-check" disabled>
             조건에 맞는지 확인하기
           </button>
@@ -844,6 +840,9 @@ function handleMakeQuadrilateral(svg) {
   const chatSection = document.querySelector('.chat-section')
   if (chatSection) {
     chatSection.style.display = 'block'
+    // 섹션 표시 시 초기화
+    const conditionResult = document.getElementById('condition-result')
+    if (conditionResult) conditionResult.innerHTML = ''
   }
   const chatCheckBtn = document.getElementById('chat-check')
   if (chatCheckBtn) {
@@ -942,10 +941,6 @@ function handleReset() {
   activityState.chatUnlocked = false
   const chatLog = document.getElementById('chat-log')
   if (chatLog) chatLog.innerHTML = ''
-  const chatStatus = document.getElementById('chat-status')
-  if (chatStatus) chatStatus.textContent = '사각형을 만든 후 조건 확인을 진행하세요.'
-  const conditionResult = document.getElementById('condition-result')
-  if (conditionResult) conditionResult.innerHTML = ''
   // 조건 확인 결과 초기화
   activityState.conditionResult = null
   const chatInput = document.getElementById('chat-input')
@@ -1017,16 +1012,12 @@ function setupChatUI() {
   const sendBtn = document.getElementById('chat-send')
   const log = document.getElementById('chat-log')
   const checkBtn = document.getElementById('chat-check')
-  const status = document.getElementById('chat-status')
-  if (!form || !input || !sendBtn || !log || !checkBtn || !status) return
+  if (!form || !input || !sendBtn || !log || !checkBtn) return
 
   const setChatEnabled = (enabled) => {
     activityState.chatUnlocked = enabled
     input.disabled = !enabled
     sendBtn.disabled = !enabled
-    status.textContent = enabled
-      ? '조건 확인 완료! 자유롭게 질문을 입력하세요.'
-      : '먼저 조건 확인 버튼을 눌러 주세요.'
   }
 
   checkBtn.addEventListener('click', async () => {
@@ -1039,7 +1030,6 @@ function setupChatUI() {
 
     activityState.isSending = true
     checkBtn.disabled = true
-    status.textContent = '조건을 만족하는지 확인인 중입니다...'
     
     // 조건 확인 결과는 condition-result에만 표시 (채팅 로그에는 추가하지 않음)
     const conditionResultDiv = document.getElementById('condition-result')
@@ -1099,7 +1089,6 @@ function setupChatUI() {
         conditionResultDiv.innerHTML = `오류가 발생했습니다: ${err.message || err}`
       }
       checkBtn.disabled = false
-      status.textContent = '조건 확인을 다시 시도해 주세요.'
     } finally {
       activityState.isSending = false
     }
