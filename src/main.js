@@ -2189,12 +2189,40 @@ function showDiagonals(svg, vertices, resultsDiv, showJudgment = true) {
   svg.appendChild(intersectionLabel)
   activityState.diagonals.push(intersectionLabel)
 
-  // 각 꼭짓점에서 교점까지의 거리 계산
+  // 각 꼭짓점에서 교점까지의 거리 계산 및 표시
   const distances = []
   const labels = ['A', 'B', 'C', 'D']
   for (let i = 0; i < 4; i++) {
     const dist = Math.hypot(intersection.x - vertices[i].x, intersection.y - vertices[i].y)
     distances.push(Math.round(dist))
+    
+    // 교점에서 각 꼭짓점까지의 선분 그리기
+    const distanceLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    distanceLine.setAttribute('x1', String(intersection.x))
+    distanceLine.setAttribute('y1', String(intersection.y))
+    distanceLine.setAttribute('x2', String(vertices[i].x))
+    distanceLine.setAttribute('y2', String(vertices[i].y))
+    distanceLine.style.stroke = '#9ca3af'
+    distanceLine.style.strokeWidth = '0.3'
+    distanceLine.style.strokeDasharray = '2 2'
+    distanceLine.style.opacity = '0.6'
+    svg.appendChild(distanceLine)
+    activityState.diagonals.push(distanceLine)
+    
+    // 거리 라벨 표시 (선분의 중간 지점)
+    const midX = (intersection.x + vertices[i].x) / 2
+    const midY = (intersection.y + vertices[i].y) / 2
+    const distanceLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    distanceLabel.setAttribute('x', String(midX))
+    distanceLabel.setAttribute('y', String(midY - 3))
+    distanceLabel.setAttribute('text-anchor', 'middle')
+    distanceLabel.setAttribute('dominant-baseline', 'middle')
+    distanceLabel.style.fontSize = '3px'
+    distanceLabel.style.fontWeight = '600'
+    distanceLabel.style.fill = '#ef4444'
+    distanceLabel.textContent = String(Math.round(dist))
+    svg.appendChild(distanceLabel)
+    activityState.diagonals.push(distanceLabel)
   }
 
   if (showJudgment) {
