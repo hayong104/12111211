@@ -275,7 +275,7 @@ function renderActivity(conditionId) {
         </div>
         
         <div class="parallelogram-analysis" id="parallelogram-analysis" style="display: none; margin-top: 20px;">
-          <h2 class="section-title">평행사변형이라고 판단한 이유를 작성하세요</h2>
+          <h2 class="section-title">평행사변형이라고 판단한 이유를 작성하세요.</h2>
           <div class="judgment-reason-section">
             <textarea
               id="judgment-reason-input"
@@ -1844,7 +1844,7 @@ function setupJudgmentReasonSection() {
       // 폭죽 효과 함수
       function createConfetti() {
         const confettiCount = 50
-        const colors = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7', '#92400e', '#b45309']
+        const colors = ['#ef4444', '#3b82f6', '#fbbf24', '#10b981', '#8b5cf6', '#f59e0b', '#2563eb', '#fcd34d', '#34d399', '#a78bfa', '#f87171', '#60a5fa']
         const body = document.body
         if (!body) return
 
