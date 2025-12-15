@@ -1161,7 +1161,8 @@ function setupChatUI() {
         analysisSection.style.display = 'block'
         setupJudgmentReasonSection()
       }
-      parallelogramJudgment.style.display = 'none'
+      // 맞아요 버튼 배경색을 분홍색으로 변경
+      judgmentYesBtn.classList.add('judgment-yes-clicked')
     })
   }
 

@@ -54,12 +54,12 @@ body {
   font-size: 2.2rem; 
   margin: 0 0 8px;
   letter-spacing: 0.05em; 
-  color: #1d252d; 
+  color: #1565C0; 
   font-weight: 600; 
   display: inline-block;
   padding: 8px 16px;
   border-radius: 12px;
-  background: #E1F5FE;
+  background: #BBDEFB;
   border: 1px solid rgba(100, 181, 246, 0.5);
   box-shadow: 3px 3px 0 rgba(33, 150, 243, 0.3);
   position: relative;
@@ -82,19 +82,20 @@ body {
 
 .section-title {
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 18px; 
-  color: #3a4a5a; 
-  padding: 12px 20px;
+  color: #1565C0; 
+  padding: 8px 16px;
   /* 모서리를 더 둥글게 */
-  border-radius: 14px; 
+  border-radius: 12px; 
   /* 하늘색 배경 */
-  background: #E3F2FD;
-  border: 1px solid rgba(100, 181, 246, 0.4);
-  box-shadow: 
-    0 3px 8px rgba(100, 181, 246, 0.06),
-    0 1px 3px rgba(100, 181, 246, 0.04);
+  background: #BBDEFB;
+  border: 1px solid rgba(100, 181, 246, 0.5);
+  box-shadow: 3px 3px 0 rgba(33, 150, 243, 0.3);
   display: inline-block;
+  letter-spacing: 0.05em;
+  position: relative;
+  line-height: 1.2;
 }
 
 .condition-grid {
@@ -183,7 +184,7 @@ body {
 .helper-text {
   margin-top: 14px;
   font-size: 0.86rem;
-  color: #5a6b7a;
+  color: #6b7280;
 }
 
 .activity-page {
@@ -262,12 +263,14 @@ body {
 
 .condition-number-box {
   display: inline-block;
-  padding: 8px 14px;
-  background: #F5F9FF;
-  border: 1px solid rgba(100, 181, 246, 0.4);
+  padding: 8px 16px;
+  background: #BBDEFB;
+  border: 1px solid rgba(100, 181, 246, 0.5);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(100, 181, 246, 0.06);
   margin-right: 8px;
+  color: #1565C0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
 .activity-body {
@@ -297,6 +300,16 @@ body {
   box-shadow: 0 1px 3px rgba(100, 181, 246, 0.06);
 }
 
+.quad-info-section .section-title {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: #3a4a5a;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
 .quad-preview-container {
   width: 100%;
   display: flex;
@@ -305,7 +318,7 @@ body {
 }
 
 .condition-check-section {
-  background: #F5F9FF;
+  background: #E3F2FD;
   border-radius: 12px;
   padding: 16px;
   border: 1px solid rgba(100, 181, 246, 0.4);
@@ -321,7 +334,7 @@ body {
   min-height: 60px;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #1976D2;
+  color: #3a4a5a;
 }
 
 .control-button--active {
@@ -440,6 +453,16 @@ body {
   margin-bottom: 20px;
 }
 
+.parallelogram-analysis .section-title {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: #3a4a5a;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
 .analysis-controls {
   display: flex;
   gap: 8px;
@@ -450,9 +473,9 @@ body {
 .analysis-results {
   margin-top: 16px;
   padding: 12px;
-  background: #E8F5E9;
+  background: #F5F9FF;
   border-radius: 8px;
-  border: 1px solid rgba(56, 142, 60, 0.3);
+  border: 1px solid rgba(100, 181, 246, 0.5);
 }
 
 .result-item {
@@ -498,8 +521,8 @@ body {
 }
 
 .judgment-question {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
   margin-bottom: 12px;
   color: #3a4a5a;
 }
@@ -513,6 +536,12 @@ body {
 .judgment-btn {
   flex: 1;
   min-width: 100px;
+  transition: background-color 0.3s ease;
+}
+
+.judgment-btn.judgment-yes-clicked {
+  background: #F8BBD0;
+  border-color: #F48FB1;
 }
 
 .judgment-reason-section {
@@ -526,7 +555,7 @@ body {
   border-radius: 8px;
   font-size: 0.9rem;
   font-family: inherit;
-  background: #E3F2FD;
+  background: #F5F9FF;
   color: #3a4a5a;
   resize: vertical;
   min-height: 120px;
@@ -670,6 +699,19 @@ body {
   flex-direction: column;
 }
 
+.activity-side .section-title {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #BBDEFB;
+  border: 1px solid rgba(100, 181, 246, 0.5);
+  border-radius: 12px;
+  color: #1565C0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  box-shadow: none;
+  margin-bottom: 18px;
+}
+
 .activity-main .grid-container {
   max-width: 400px;
   width: 100%;
@@ -752,6 +794,7 @@ body {
 }
 
 .chat-title {
+  font-size: 1.2rem;
   font-weight: 700;
   color: #3a4a5a;
 }
